@@ -1,0 +1,12 @@
+AVSP INTEGRATION WORKSPACE
+CURRENT_M1_M3/
+M4/
+M5/
+M6/
+M7/
+M8/
+M9/
+M10/
+
+Place each completed source package in its corresponding folder.
+Do NOT merge the module folders before the integration audit.

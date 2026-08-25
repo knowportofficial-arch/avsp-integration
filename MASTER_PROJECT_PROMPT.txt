@@ -1,0 +1,25 @@
+AI VIDEO STUDIO PRO (AVSP)
+MASTER PROJECT REPRODUCTION & CONTINUATION PROMPT v1.0
+
+AUTHORITATIVE PRINCIPLES
+- Creator-first: reliable professional video production and publishing.
+- Prefer existing reliable AI/models/APIs/open-source tools.
+- Repair before rewrite. Verify before modifying.
+- Actual project files are authoritative.
+- Test before integration.
+- Android = lightweight UI/control/capture.
+- Windows = heavy AI/video/automation/publishing unless benchmarks prove otherwise.
+- Completed modules are reference implementations; do not blindly merge/rewrite.
+- Use contracts/adapters/bridges.
+- Final acceptance is a REAL end-to-end production run.
+- Performance is a primary metric; known Windows reference is ~10 minutes for a 5-minute video.
+
+TARGET FLOW
+Topic → research/planning → script → narration/timing → media discovery → AI vision/segment selection → trimming/normalization → editing → subtitles/audio → rendering → AI QC → publishing.
+
+INTEGRATION RULE
+Audit all module interfaces/dependencies first. Create only the minimum adapters/bridge required. Do not rewrite working internals without a reproducible defect.
+
+PLATFORM
+Android: lightweight UI/control, camera/capture, local media/dataset, preview/status.
+Windows: heavy AI, FFmpeg rendering, YouTube/screen/OCR, automation, publishing.
