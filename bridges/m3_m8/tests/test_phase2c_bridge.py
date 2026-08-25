@@ -27,7 +27,7 @@ from bridges.m3_m8.adapter import (
 )
 from bridges.m3_m8.concat import concat_voice_package
 from bridges.m3_m8.fixtures import build_m3_fixture
-from bridges.m3_m8.pipeline import run_m3_to_m8, run_m3_to_m8_to_m9_mock
+from bridges.m3_m8.pipeline import run_m3_to_m8
 
 
 class TestPhase2CBridge(unittest.TestCase):
