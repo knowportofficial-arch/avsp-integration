@@ -1,0 +1,97 @@
+{
+  "file": "/home/workdir/artifacts/m8/projects/belda_final_release/render/final.mp4",
+  "file_exists": true,
+  "matrix": {
+    "punch": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "emoji": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "transition": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "sfx": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "caption": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "bgm": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    },
+    "voice_ducking": {
+      "PLANNED": true,
+      "RENDERED": true,
+      "VERIFIED": true
+    }
+  },
+  "frames": [
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_00_0.50s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_01_1.50s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_02_8.02s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_03_35.27s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_04_74.89s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_05_78.56s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_06_104.06s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_07_126.66s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_08_149.78s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_09_174.76s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_10_218.04s.jpg",
+    "/home/workdir/artifacts/m8/projects/belda_final_release/qc/frames/frame_11_238.73s.jpg"
+  ],
+  "audio": {
+    "has_audio_stream": true,
+    "mean_volume": -47.1,
+    "max_volume": -40.8
+  },
+  "status": "PASS",
+  "duration": 299.566667,
+  "transitions_rendered_detail": [
+    {
+      "index": 1,
+      "type": "hard_cut"
+    },
+    {
+      "index": 2,
+      "type": "fade"
+    },
+    {
+      "index": 3,
+      "type": "hard_cut"
+    },
+    {
+      "index": 4,
+      "type": "hard_cut"
+    },
+    {
+      "index": 5,
+      "type": "fade"
+    },
+    {
+      "index": 6,
+      "type": "hard_cut"
+    },
+    {
+      "index": 7,
+      "type": "hard_cut"
+    },
+    {
+      "index": 8,
+      "type": "hard_cut"
+    }
+  ],
+  "failures": []
+}

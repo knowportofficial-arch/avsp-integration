@@ -1,0 +1,51 @@
+﻿# ===== AVSP Integration =====
+
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+secrets.json
+credentials.json
+*credentials*
+*token*
+*.pem
+*.key
+
+# Android local machine configuration
+**/local.properties
+
+# Android / Gradle generated files
+**/.gradle/
+**/build/
+**/.idea/
+**/captures/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.venv/
+**/venv/
+**/env/
+
+# Python generated/output
+**/temp/
+**/output/
+**/generated/
+
+# Media/build artifacts
+*.apk
+*.aab
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
+
+# OS/editor
+Thumbs.db
+.DS_Store
+*.log
+
+# Distribution archives
+*.zip

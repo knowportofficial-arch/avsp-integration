@@ -1,0 +1,101 @@
+{
+  "status": "success",
+  "file": "/home/workdir/artifacts/m8/projects/belda_final_release/render/final.mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 299.566667,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_meta": {
+    "narration": true,
+    "bgm": true,
+    "sfx_count": 3,
+    "base_volume": 0.08,
+    "duck_volume": 0.03,
+    "duck_regions": [
+      {
+        "start": 0.0,
+        "end": 16.033
+      },
+      {
+        "start": 16.033,
+        "end": 54.511
+      },
+      {
+        "start": 54.511,
+        "end": 102.60900000000001
+      },
+      {
+        "start": 102.609,
+        "end": 150.707
+      },
+      {
+        "start": 150.707,
+        "end": 198.805
+      },
+      {
+        "start": 198.804,
+        "end": 237.282
+      },
+      {
+        "start": 237.283,
+        "end": 269.34799999999996
+      },
+      {
+        "start": 269.348,
+        "end": 295.0
+      },
+      {
+        "start": 295.0,
+        "end": 300.0
+      }
+    ],
+    "ducking_applied": true,
+    "effective_bgm_volume": 0.055
+  },
+  "effects": {
+    "punch_count": 2,
+    "emoji_count": 1,
+    "transition_count": 7,
+    "transitions_rendered": [
+      {
+        "index": 1,
+        "type": "hard_cut"
+      },
+      {
+        "index": 2,
+        "type": "fade"
+      },
+      {
+        "index": 3,
+        "type": "hard_cut"
+      },
+      {
+        "index": 4,
+        "type": "hard_cut"
+      },
+      {
+        "index": 5,
+        "type": "fade"
+      },
+      {
+        "index": 6,
+        "type": "hard_cut"
+      },
+      {
+        "index": 7,
+        "type": "hard_cut"
+      },
+      {
+        "index": 8,
+        "type": "hard_cut"
+      }
+    ],
+    "sfx_count": 3,
+    "caption_count": 9,
+    "caption_burn_ok": true,
+    "caption_burn_method": "drawtext",
+    "bgm": true
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "topic": "Belda Railway Station",
+  "duration_target": 15.0,
+  "language": "en",
+  "segments": [
+    {
+      "index": 0,
+      "title": "Hook / Title",
+      "text": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration for scene 1."
+    },
+    {
+      "index": 1,
+      "title": "Context",
+      "text": "Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for scene 2."
+    },
+    {
+      "index": 2,
+      "title": "History / Background",
+      "text": "Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear narration for scene 3."
+    },
+    {
+      "index": 3,
+      "title": "Main Feature 1",
+      "text": "Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narration for scene 4."
+    },
+    {
+      "index": 4,
+      "title": "Main Feature 2",
+      "text": "Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narration for scene 5."
+    },
+    {
+      "index": 5,
+      "title": "CTA",
+      "text": "Thanks for watching. Follow for more about Belda Railway Station and local places."
+    }
+  ],
+  "full_text": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration for scene 1. Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for scene 2. Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear narration for scene 3. Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narration for scene 4. Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narration for scene 5. Thanks for watching. Follow for more about Belda Railway Station and local places."
+}

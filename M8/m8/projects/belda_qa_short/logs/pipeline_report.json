@@ -1,0 +1,498 @@
+{
+  "project_id": "belda_qa_short",
+  "topic": "Belda Railway Station",
+  "duration_target": 15.0,
+  "format": "9:16",
+  "decision_source": "DETERMINISTIC_FALLBACK",
+  "media_sources": [
+    "local"
+  ],
+  "pexels_available": false,
+  "stages": [
+    {
+      "stage": "validate_input",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "create_project",
+      "status": "success",
+      "elapsed": 3.988,
+      "error": null
+    },
+    {
+      "stage": "research_planning",
+      "status": "success",
+      "elapsed": 0.403,
+      "error": null
+    },
+    {
+      "stage": "generate_script",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "generate_scene_plan",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "discover_local_media",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "filter_media",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "external_fallback",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "generate_creative_edl",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "build_timeline",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_punch_overlays",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_transitions",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_sfx",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_emoji",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_bgm",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "apply_voice_ducking",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "add_captions",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "protect_cta",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "call_m4_renderer",
+      "status": "success",
+      "elapsed": 44.183,
+      "error": null
+    },
+    {
+      "stage": "inspect_final_mp4",
+      "status": "success",
+      "elapsed": 0.0,
+      "error": null
+    },
+    {
+      "stage": "run_final_ai_qc",
+      "status": "success",
+      "elapsed": 8.314,
+      "error": null
+    }
+  ],
+  "edl": "/home/workdir/artifacts/m8/projects/belda_qa_short/edl/creative_edl.json",
+  "timeline": "/home/workdir/artifacts/m8/projects/belda_qa_short/timeline/timeline.json",
+  "render": {
+    "status": "success",
+    "file": "/home/workdir/artifacts/m8/projects/belda_qa_short/render/final.mp4",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "duration": 14.2,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "audio_meta": {
+      "narration": true,
+      "bgm": true,
+      "sfx_count": 3,
+      "base_volume": 0.08,
+      "duck_volume": 0.03,
+      "duck_regions": [
+        {
+          "start": 0.0,
+          "end": 0.543
+        },
+        {
+          "start": 0.543,
+          "end": 1.847
+        },
+        {
+          "start": 1.848,
+          "end": 3.4779999999999998
+        },
+        {
+          "start": 3.478,
+          "end": 5.1080000000000005
+        },
+        {
+          "start": 5.109,
+          "end": 6.739
+        },
+        {
+          "start": 6.739,
+          "end": 8.043
+        },
+        {
+          "start": 8.043,
+          "end": 9.129999999999999
+        },
+        {
+          "start": 9.13,
+          "end": 10.0
+        },
+        {
+          "start": 10.0,
+          "end": 15.0
+        }
+      ],
+      "ducking_applied": true,
+      "effective_bgm_volume": 0.055
+    },
+    "effects": {
+      "punch_count": 2,
+      "emoji_count": 1,
+      "transition_count": 7,
+      "transitions_rendered": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "sfx_count": 3,
+      "caption_count": 9,
+      "bgm": true
+    }
+  },
+  "qc": {
+    "status": "PASS",
+    "file_exists": true,
+    "playable": true,
+    "duration": 14.2,
+    "resolution": "1080x1920",
+    "fps": 30.0,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "audio_present": true,
+    "caption_presence": "planned",
+    "cta": "PASS",
+    "black_frames": "unknown",
+    "missing_assets": 0,
+    "checks": {
+      "duration": "PASS",
+      "resolution": "PASS",
+      "video_codec": "PASS",
+      "audio": "PASS",
+      "fps": "PASS",
+      "cta": "PASS",
+      "captions": "PASS",
+      "missing_assets": "PASS",
+      "effects_pipeline": "PASS",
+      "bgm_ducking": "PASS"
+    },
+    "errors": [],
+    "warnings": [],
+    "effects": {
+      "punch_count": 2,
+      "emoji_count": 1,
+      "transition_count": 7,
+      "transitions_rendered": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "sfx_count": 3,
+      "caption_count": 9,
+      "bgm": true
+    },
+    "audio_meta": {
+      "narration": true,
+      "bgm": true,
+      "sfx_count": 3,
+      "base_volume": 0.08,
+      "duck_volume": 0.03,
+      "duck_regions": [
+        {
+          "start": 0.0,
+          "end": 0.543
+        },
+        {
+          "start": 0.543,
+          "end": 1.847
+        },
+        {
+          "start": 1.848,
+          "end": 3.4779999999999998
+        },
+        {
+          "start": 3.478,
+          "end": 5.1080000000000005
+        },
+        {
+          "start": 5.109,
+          "end": 6.739
+        },
+        {
+          "start": 6.739,
+          "end": 8.043
+        },
+        {
+          "start": 8.043,
+          "end": 9.129999999999999
+        },
+        {
+          "start": 9.13,
+          "end": 10.0
+        },
+        {
+          "start": 10.0,
+          "end": 15.0
+        }
+      ],
+      "ducking_applied": true,
+      "effective_bgm_volume": 0.055
+    },
+    "planned_punch": 2,
+    "planned_emoji": 1,
+    "planned_sfx": 3,
+    "planned_transitions": 7,
+    "planned_captions": 9,
+    "visual_verification": {
+      "file": "/home/workdir/artifacts/m8/projects/belda_qa_short/render/final.mp4",
+      "file_exists": true,
+      "matrix": {
+        "punch": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "emoji": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "transition": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "sfx": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "caption": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "bgm": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "voice_ducking": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        }
+      },
+      "frames": [
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_00_0.27s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_01_0.50s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_02_0.52s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_03_1.20s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_04_2.66s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_05_3.55s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_06_4.29s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_07_4.42s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_08_5.92s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_09_7.10s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_10_7.39s.jpg",
+        "/home/workdir/artifacts/m8/projects/belda_qa_short/qc/frames/frame_11_8.59s.jpg"
+      ],
+      "audio": {
+        "has_audio_stream": true,
+        "mean_volume": -47.1,
+        "max_volume": -40.8
+      },
+      "status": "PASS",
+      "duration": 14.2,
+      "transitions_rendered_detail": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "failures": []
+    },
+    "effect_matrix": {
+      "punch": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "emoji": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "transition": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "sfx": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "caption": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "bgm": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "voice_ducking": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      }
+    }
+  },
+  "final_mp4": "/home/workdir/artifacts/m8/projects/belda_qa_short/render/final.mp4"
+}

@@ -1,0 +1,5 @@
+[
+  {"id": "punch_01", "path": "assets/punch_library/clips/punch_01.mp4", "duration": 0.9, "category": "impact"},
+  {"id": "punch_02", "path": "assets/punch_library/clips/punch_02.mp4", "duration": 1.0, "category": "alert"},
+  {"id": "punch_03", "path": "assets/punch_library/clips/punch_03.mp4", "duration": 0.8, "category": "emphasis"}
+]

@@ -1,0 +1,10 @@
+# AVSP M9 — Publishing & Web
+# Core: stdlib only (sqlite3, json, pathlib, dataclasses, enum, argparse)
+# Optional for real API mode:
+# requests>=2.28.0
+# google-api-python-client>=2.100.0
+# google-auth>=2.22.0
+# python-dotenv>=1.0.0
+
+# Tests
+pytest>=7.0.0

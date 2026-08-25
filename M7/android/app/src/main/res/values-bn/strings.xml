@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI ভিডিও স্টুডিও প্রো</string>
+    <string name="app_short_name">AVSP</string>
+    <string name="dashboard_title">AVSP ক্রিয়েটর ড্যাশবোর্ড</string>
+    <string name="todays_production">আজকের প্রোডাকশন</string>
+    <string name="active_projects">সক্রিয় প্রজেক্ট</string>
+    <string name="pending_capture">ক্যাপচার অপেক্ষমাণ</string>
+    <string name="pending_editing">সম্পাদনা অপেক্ষমাণ</string>
+    <string name="ready_projects">প্রস্তুত প্রজেক্ট</string>
+    <string name="recent_projects">সাম্প্রতিক প্রজেক্ট</string>
+    <string name="no_projects_found">কোন প্রজেক্ট পাওয়া যায়নি</string>
+    <string name="create_project_title">নতুন প্রজেক্ট তৈরি করুন</string>
+    <string name="project_workspace">প্রজেক্ট ওয়ার্কস্পেস</string>
+    <string name="save_project">সংরক্ষণ করুন</string>
+    <string name="camera_screen_title">AVSP ক্যামেরা</string>
+    <string name="camera_permission_required">AVSP ক্যামেরার জন্য ক্যামেরা অনুমতি আবশ্যক।</string>
+    <string name="grant_camera_permission">ক্যামেরা অনুমতি দিন</string>
+    <string name="capture_placeholder">ক্যাপচার — M1.2 এ আসছে</string>
+    <string name="switch_camera">ক্যামেরা পরিবর্তন করুন</string>
+    <string name="open_camera">ক্যামেরা</string>
+    <string name="camera_unavailable">এই ডিভাইসে ক্যামেরা উপলব্ধ নয়।</string>
+    <string name="camera_lens_unavailable">নির্বাচিত ক্যামেরা লেন্স এই ডিভাইসে উপলব্ধ নয়।</string>
+    <string name="camera_initializing">ক্যামেরা প্রস্তুত করা হচ্ছে...</string>
+    <string name="mode_photo">ছবি</string>
+    <string name="mode_video">ভিডিও</string>
+    <string name="photo_saved">ছবি গ্যালারিতে সংরক্ষিত হয়েছে</string>
+    <string name="video_saved">ভিডিও গ্যালারিতে সংরক্ষিত হয়েছে</string>
+</resources>

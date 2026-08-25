@@ -1,0 +1,404 @@
+{
+  "project_id": "belda_5m_caption_fixed",
+  "format": "9:16",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30.0,
+  "duration": 300.0,
+  "narration": [
+    {
+      "start": 0.0,
+      "end": 16.033,
+      "text": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration for scene 1.",
+      "audio_path": null
+    },
+    {
+      "start": 16.033,
+      "end": 54.511,
+      "text": "Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for scene 2.",
+      "audio_path": null
+    },
+    {
+      "start": 54.511,
+      "end": 102.60900000000001,
+      "text": "Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear narration for scene 3.",
+      "audio_path": null
+    },
+    {
+      "start": 102.609,
+      "end": 150.707,
+      "text": "Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narration for scene 4.",
+      "audio_path": null
+    },
+    {
+      "start": 150.707,
+      "end": 198.805,
+      "text": "Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narration for scene 5.",
+      "audio_path": null
+    },
+    {
+      "start": 198.804,
+      "end": 237.282,
+      "text": "Belda Railway Station. Details / Atmosphere. This segment covers important aspects of Belda Railway Station with clear narration for scene 6.",
+      "audio_path": null
+    },
+    {
+      "start": 237.283,
+      "end": 269.34799999999996,
+      "text": "Belda Railway Station. People / Activity. This segment covers important aspects of Belda Railway Station with clear narration for scene 7.",
+      "audio_path": null
+    },
+    {
+      "start": 269.348,
+      "end": 295.0,
+      "text": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "audio_path": null
+    },
+    {
+      "start": 295.0,
+      "end": 300.0,
+      "text": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "audio_path": null
+    }
+  ],
+  "visual": [
+    {
+      "start": 0.0,
+      "end": 16.033,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 16.033,
+      "end": 54.511,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 54.511,
+      "end": 102.60900000000001,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 102.609,
+      "end": 150.707,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 150.707,
+      "end": 198.805,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 198.804,
+      "end": 237.282,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 237.283,
+      "end": 269.34799999999996,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 269.348,
+      "end": 295.0,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    },
+    {
+      "start": 295.0,
+      "end": 300.0,
+      "path": "assets/local_media/keep_station.jpg",
+      "media_type": "image",
+      "fit_mode": "cover",
+      "source": "local",
+      "asset_id": "a1",
+      "trim_start": 0.0,
+      "trim_end": null
+    }
+  ],
+  "overlays": [
+    {
+      "start": 0.5,
+      "end": 2.5,
+      "kind": "emoji",
+      "path": null,
+      "text": "📍",
+      "position": "center",
+      "scale": 1.0,
+      "reason": "location marker"
+    },
+    {
+      "start": 103.609,
+      "end": 104.509,
+      "kind": "punch",
+      "path": "assets/punch_library/clips/punch_01.mp4",
+      "text": null,
+      "position": "center",
+      "scale": 1.0,
+      "reason": "emphasis on key beat"
+    },
+    {
+      "start": 238.283,
+      "end": 239.183,
+      "kind": "punch",
+      "path": "assets/punch_library/clips/punch_01.mp4",
+      "text": null,
+      "position": "center",
+      "scale": 1.0,
+      "reason": "emphasis on key beat"
+    }
+  ],
+  "transitions": [
+    {
+      "at": 16.033,
+      "type": "hard_cut",
+      "duration": 0.0,
+      "from_scene": "scene_1",
+      "to_scene": "scene_2",
+      "reason": "clean cut"
+    },
+    {
+      "at": 54.511,
+      "type": "fade",
+      "duration": 0.4,
+      "from_scene": "scene_2",
+      "to_scene": "scene_3",
+      "reason": "creative fade"
+    },
+    {
+      "at": 102.609,
+      "type": "hard_cut",
+      "duration": 0.0,
+      "from_scene": "scene_3",
+      "to_scene": "scene_4",
+      "reason": "clean cut"
+    },
+    {
+      "at": 150.707,
+      "type": "hard_cut",
+      "duration": 0.0,
+      "from_scene": "scene_4",
+      "to_scene": "scene_5",
+      "reason": "clean cut"
+    },
+    {
+      "at": 198.804,
+      "type": "fade",
+      "duration": 0.4,
+      "from_scene": "scene_5",
+      "to_scene": "scene_6",
+      "reason": "creative fade"
+    },
+    {
+      "at": 237.283,
+      "type": "hard_cut",
+      "duration": 0.0,
+      "from_scene": "scene_6",
+      "to_scene": "scene_7",
+      "reason": "clean cut"
+    },
+    {
+      "at": 269.348,
+      "type": "hard_cut",
+      "duration": 0.0,
+      "from_scene": "scene_7",
+      "to_scene": "scene_8",
+      "reason": "clean cut"
+    }
+  ],
+  "sfx": [
+    {
+      "start": 54.511,
+      "end": 54.911,
+      "path": "/home/workdir/artifacts/m8/assets/sfx/impact.m4a",
+      "volume": 0.35,
+      "reason": "scene open whoosh"
+    },
+    {
+      "start": 150.707,
+      "end": 151.107,
+      "path": "/home/workdir/artifacts/m8/assets/sfx/reveal.m4a",
+      "volume": 0.35,
+      "reason": "scene open whoosh"
+    },
+    {
+      "start": 237.283,
+      "end": 237.683,
+      "path": "/home/workdir/artifacts/m8/assets/sfx/whoosh.m4a",
+      "volume": 0.35,
+      "reason": "scene open whoosh"
+    }
+  ],
+  "music": {
+    "path": "/home/workdir/artifacts/m8/assets/music/bgm_soft.m4a",
+    "start": 0.0,
+    "duration": 300.0,
+    "base_volume": 0.08,
+    "duck_volume": 0.03,
+    "duck_regions": [
+      {
+        "start": 0.0,
+        "end": 16.033
+      },
+      {
+        "start": 16.033,
+        "end": 54.511
+      },
+      {
+        "start": 54.511,
+        "end": 102.60900000000001
+      },
+      {
+        "start": 102.609,
+        "end": 150.707
+      },
+      {
+        "start": 150.707,
+        "end": 198.805
+      },
+      {
+        "start": 198.804,
+        "end": 237.282
+      },
+      {
+        "start": 237.283,
+        "end": 269.34799999999996
+      },
+      {
+        "start": 269.348,
+        "end": 295.0
+      },
+      {
+        "start": 295.0,
+        "end": 300.0
+      }
+    ]
+  },
+  "captions": [
+    {
+      "start": 0.0,
+      "end": 16.033,
+      "text": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 16.033,
+      "end": 54.511,
+      "text": "Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for ",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 54.511,
+      "end": 102.60900000000001,
+      "text": "Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear n",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 102.609,
+      "end": 150.707,
+      "text": "Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narrati",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 150.707,
+      "end": 198.805,
+      "text": "Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narrati",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 198.804,
+      "end": 237.282,
+      "text": "Belda Railway Station. Details / Atmosphere. This segment covers important aspects of Belda Railway Station with clear n",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 237.283,
+      "end": 269.34799999999996,
+      "text": "Belda Railway Station. People / Activity. This segment covers important aspects of Belda Railway Station with clear narr",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 269.348,
+      "end": 295.0,
+      "text": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "style": "default",
+      "emphasis": false,
+      "position": "bottom"
+    },
+    {
+      "start": 295.0,
+      "end": 300.0,
+      "text": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "style": "default",
+      "emphasis": true,
+      "position": "bottom"
+    }
+  ],
+  "cta": {
+    "start": 295.0,
+    "end": 300.0,
+    "text": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+    "duration": 5.0
+  },
+  "version": "1.0"
+}

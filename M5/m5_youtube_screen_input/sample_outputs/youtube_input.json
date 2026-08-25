@@ -1,0 +1,13 @@
+{
+  "source": "youtube",
+  "input_type": "video_metadata",
+  "data": {
+    "video_id": "dQw4w9WgXcQ",
+    "title": "How to build M5 pipeline - Full Tutorial",
+    "channel": "TechWithBijnan",
+    "duration_sec": 842,
+    "description": "In this video we cover youtube ingestion for M5...",
+    "transcript": "00:00 Welcome to the tutorial. 00:15 First we parse the YouTube URL..."
+  },
+  "m5_format_version": "1.0"
+}

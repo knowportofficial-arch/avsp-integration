@@ -1,0 +1,358 @@
+{
+  "render": {
+    "status": "success",
+    "file": "/home/workdir/artifacts/m8/projects/belda_5m_caption_fixed/render/final.mp4",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "duration": 299.566667,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "audio_meta": {
+      "narration": true,
+      "bgm": true,
+      "sfx_count": 3,
+      "base_volume": 0.08,
+      "duck_volume": 0.03,
+      "duck_regions": [
+        {
+          "start": 0.0,
+          "end": 16.033
+        },
+        {
+          "start": 16.033,
+          "end": 54.511
+        },
+        {
+          "start": 54.511,
+          "end": 102.60900000000001
+        },
+        {
+          "start": 102.609,
+          "end": 150.707
+        },
+        {
+          "start": 150.707,
+          "end": 198.805
+        },
+        {
+          "start": 198.804,
+          "end": 237.282
+        },
+        {
+          "start": 237.283,
+          "end": 269.34799999999996
+        },
+        {
+          "start": 269.348,
+          "end": 295.0
+        },
+        {
+          "start": 295.0,
+          "end": 300.0
+        }
+      ],
+      "ducking_applied": true,
+      "effective_bgm_volume": 0.055
+    },
+    "effects": {
+      "punch_count": 2,
+      "emoji_count": 1,
+      "transition_count": 7,
+      "transitions_rendered": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "sfx_count": 3,
+      "caption_count": 9,
+      "caption_burn_ok": true,
+      "caption_burn_method": "drawtext",
+      "bgm": true
+    }
+  },
+  "qc": {
+    "status": "PASS",
+    "file_exists": true,
+    "playable": true,
+    "duration": 299.566667,
+    "resolution": "1080x1920",
+    "fps": 30.0,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "audio_present": true,
+    "caption_presence": "burned:drawtext",
+    "cta": "PASS",
+    "black_frames": "unknown",
+    "missing_assets": 0,
+    "checks": {
+      "duration": "PASS",
+      "resolution": "PASS",
+      "video_codec": "PASS",
+      "audio": "PASS",
+      "fps": "PASS",
+      "cta": "PASS",
+      "captions": "PASS",
+      "missing_assets": "PASS",
+      "effects_pipeline": "PASS",
+      "bgm_ducking": "PASS"
+    },
+    "errors": [],
+    "warnings": [],
+    "effects": {
+      "punch_count": 2,
+      "emoji_count": 1,
+      "transition_count": 7,
+      "transitions_rendered": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "sfx_count": 3,
+      "caption_count": 9,
+      "caption_burn_ok": true,
+      "caption_burn_method": "drawtext",
+      "bgm": true
+    },
+    "audio_meta": {
+      "narration": true,
+      "bgm": true,
+      "sfx_count": 3,
+      "base_volume": 0.08,
+      "duck_volume": 0.03,
+      "duck_regions": [
+        {
+          "start": 0.0,
+          "end": 16.033
+        },
+        {
+          "start": 16.033,
+          "end": 54.511
+        },
+        {
+          "start": 54.511,
+          "end": 102.60900000000001
+        },
+        {
+          "start": 102.609,
+          "end": 150.707
+        },
+        {
+          "start": 150.707,
+          "end": 198.805
+        },
+        {
+          "start": 198.804,
+          "end": 237.282
+        },
+        {
+          "start": 237.283,
+          "end": 269.34799999999996
+        },
+        {
+          "start": 269.348,
+          "end": 295.0
+        },
+        {
+          "start": 295.0,
+          "end": 300.0
+        }
+      ],
+      "ducking_applied": true,
+      "effective_bgm_volume": 0.055
+    },
+    "planned_punch": 2,
+    "planned_emoji": 1,
+    "planned_sfx": 3,
+    "planned_transitions": 7,
+    "planned_captions": 9,
+    "visual_verification": {
+      "file": "projects/belda_5m_caption_fixed/render/final.mp4",
+      "file_exists": true,
+      "matrix": {
+        "punch": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "emoji": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "transition": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "sfx": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "caption": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "bgm": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        },
+        "voice_ducking": {
+          "PLANNED": true,
+          "RENDERED": true,
+          "VERIFIED": true
+        }
+      },
+      "frames": [
+        "projects/belda_5m_caption_fixed/qc/frames/frame_00_0.50s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_01_1.50s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_02_8.02s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_03_35.27s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_04_74.89s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_05_78.56s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_06_104.06s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_07_126.66s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_08_149.78s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_09_174.76s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_10_218.04s.jpg",
+        "projects/belda_5m_caption_fixed/qc/frames/frame_11_238.73s.jpg"
+      ],
+      "audio": {
+        "has_audio_stream": true,
+        "mean_volume": -47.1,
+        "max_volume": -40.8
+      },
+      "status": "PASS",
+      "duration": 299.566667,
+      "transitions_rendered_detail": [
+        {
+          "index": 1,
+          "type": "hard_cut"
+        },
+        {
+          "index": 2,
+          "type": "fade"
+        },
+        {
+          "index": 3,
+          "type": "hard_cut"
+        },
+        {
+          "index": 4,
+          "type": "hard_cut"
+        },
+        {
+          "index": 5,
+          "type": "fade"
+        },
+        {
+          "index": 6,
+          "type": "hard_cut"
+        },
+        {
+          "index": 7,
+          "type": "hard_cut"
+        },
+        {
+          "index": 8,
+          "type": "hard_cut"
+        }
+      ],
+      "failures": []
+    },
+    "effect_matrix": {
+      "punch": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "emoji": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "transition": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "sfx": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "caption": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "bgm": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "VERIFIED": true
+      },
+      "voice_ducking": {
+        "PLANNED": true,
+        "RENDERED": true,
+        "

@@ -1,0 +1,89 @@
+{
+  "status": "PASS",
+  "file_exists": true,
+  "playable": true,
+  "duration": 300.0,
+  "resolution": "1080x1920",
+  "fps": 30.0,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_present": true,
+  "caption_presence": "planned",
+  "cta": "PASS",
+  "black_frames": "unknown",
+  "missing_assets": 0,
+  "checks": {
+    "duration": "PASS",
+    "resolution": "PASS",
+    "video_codec": "PASS",
+    "audio": "PASS",
+    "fps": "PASS",
+    "cta": "PASS",
+    "captions": "PASS",
+    "missing_assets": "PASS",
+    "effects_pipeline": "PASS",
+    "bgm_ducking": "PASS"
+  },
+  "errors": [],
+  "warnings": [],
+  "effects": {
+    "punch_count": 2,
+    "emoji_count": 1,
+    "transition_count": 7,
+    "sfx_count": 3,
+    "caption_count": 9,
+    "bgm": true
+  },
+  "audio_meta": {
+    "narration": true,
+    "bgm": true,
+    "sfx_count": 3,
+    "base_volume": 0.08,
+    "duck_volume": 0.03,
+    "duck_regions": [
+      {
+        "start": 0.0,
+        "end": 16.033
+      },
+      {
+        "start": 16.033,
+        "end": 54.511
+      },
+      {
+        "start": 54.511,
+        "end": 102.60900000000001
+      },
+      {
+        "start": 102.609,
+        "end": 150.707
+      },
+      {
+        "start": 150.707,
+        "end": 198.805
+      },
+      {
+        "start": 198.804,
+        "end": 237.282
+      },
+      {
+        "start": 237.283,
+        "end": 269.34799999999996
+      },
+      {
+        "start": 269.348,
+        "end": 295.0
+      },
+      {
+        "start": 295.0,
+        "end": 300.0
+      }
+    ],
+    "ducking_applied": true,
+    "effective_bgm_volume": 0.055
+  },
+  "planned_punch": 2,
+  "planned_emoji": 1,
+  "planned_sfx": 3,
+  "planned_transitions": 7,
+  "planned_captions": 9
+}

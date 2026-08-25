@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "file_exists": true,
+  "playable": true,
+  "duration": 15.0,
+  "resolution": "1080x1920",
+  "fps": 30.0,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_present": true,
+  "caption_presence": "planned",
+  "cta": "PASS",
+  "black_frames": "unknown",
+  "missing_assets": 0,
+  "checks": {
+    "duration": "PASS",
+    "resolution": "PASS",
+    "video_codec": "PASS",
+    "audio": "PASS",
+    "fps": "PASS",
+    "cta": "PASS",
+    "captions": "PASS",
+    "missing_assets": "PASS"
+  },
+  "errors": [],
+  "warnings": []
+}

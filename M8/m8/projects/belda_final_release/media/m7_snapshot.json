@@ -1,0 +1,164 @@
+{
+  "project_id": "belda_final_release",
+  "total": 9,
+  "keep": 7,
+  "review": 1,
+  "retake": 1,
+  "items": [
+    {
+      "asset_id": "a1",
+      "path": "assets/local_media/keep_station.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "0x0",
+      "orientation": "PORTRAIT",
+      "category": "station",
+      "tags": [
+        "railway",
+        "belda"
+      ],
+      "quality_score": 0.92,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "a2",
+      "path": "assets/local_media/keep_platform.mp4",
+      "type": "VIDEO",
+      "duration": 8.0,
+      "resolution": "0x0",
+      "orientation": "PORTRAIT",
+      "category": "station",
+      "tags": [
+        "platform"
+      ],
+      "quality_score": 0.88,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "a3",
+      "path": "assets/local_media/review_blur.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "0x0",
+      "orientation": "PORTRAIT",
+      "category": "station",
+      "tags": [
+        "blur"
+      ],
+      "quality_score": 0.45,
+      "recommendation": "REVIEW",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "a4",
+      "path": "assets/local_media/retake_bad.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "0x0",
+      "orientation": "PORTRAIT",
+      "category": "station",
+      "tags": [
+        "bad"
+      ],
+      "quality_score": 0.2,
+      "recommendation": "RETAKE",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "a5",
+      "path": "assets/local_media/dup.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "0x0",
+      "orientation": "PORTRAIT",
+      "category": "station",
+      "tags": [
+        "dup"
+      ],
+      "quality_score": 0.9,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": true
+    },
+    {
+      "asset_id": "8e8979088825",
+      "path": "/home/workdir/artifacts/m8/assets/local_media/keep_platform.mp4",
+      "type": "VIDEO",
+      "duration": 0.0,
+      "resolution": "",
+      "orientation": "PORTRAIT",
+      "category": "",
+      "tags": [],
+      "quality_score": 0.7,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "339066b63780",
+      "path": "/home/workdir/artifacts/m8/assets/local_media/keep_station.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "",
+      "orientation": "PORTRAIT",
+      "category": "",
+      "tags": [],
+      "quality_score": 0.7,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "aa057fb4d6dc",
+      "path": "/home/workdir/artifacts/m8/assets/local_media/retake_bad.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "",
+      "orientation": "PORTRAIT",
+      "category": "",
+      "tags": [],
+      "quality_score": 0.7,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    },
+    {
+      "asset_id": "86a08c56b46c",
+      "path": "/home/workdir/artifacts/m8/assets/local_media/review_blur.jpg",
+      "type": "PHOTO",
+      "duration": 0.0,
+      "resolution": "",
+      "orientation": "PORTRAIT",
+      "category": "",
+      "tags": [],
+      "quality_score": 0.7,
+      "recommendation": "KEEP",
+      "source": "local",
+      "location": null,
+      "metadata": {},
+      "is_duplicate": false
+    }
+  ]
+}

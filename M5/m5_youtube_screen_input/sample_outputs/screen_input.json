@@ -1,0 +1,28 @@
+{
+  "source": "screen",
+  "input_type": "screen_capture",
+  "data": {
+    "file": "recording.mp4",
+    "frames": [
+      "frame_at_0s.jpg",
+      "frame_at_5s.jpg",
+      "frame_at_10s.jpg"
+    ],
+    "ocr_text": "",
+    "events": [
+      {
+        "label": "open app",
+        "seconds": 2
+      },
+      {
+        "label": "click login",
+        "seconds": 15
+      },
+      {
+        "label": "scroll feed",
+        "seconds": 32
+      }
+    ]
+  },
+  "m5_format_version": "1.0"
+}

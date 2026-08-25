@@ -1,0 +1,10 @@
+{
+  "project_id": "demo",
+  "items": [
+    {"id": "a1", "path": "assets/local_media/keep_station.jpg", "type": "PHOTO", "quality_score": 0.92, "recommendation": "KEEP", "category": "station", "tags": ["railway", "belda"], "orientation": "PORTRAIT", "duplicate": false},
+    {"id": "a2", "path": "assets/local_media/keep_platform.mp4", "type": "VIDEO", "quality_score": 0.88, "recommendation": "KEEP", "category": "station", "tags": ["platform"], "orientation": "PORTRAIT", "duration": 8.0, "duplicate": false},
+    {"id": "a3", "path": "assets/local_media/review_blur.jpg", "type": "PHOTO", "quality_score": 0.45, "recommendation": "REVIEW", "category": "station", "tags": ["blur"], "orientation": "PORTRAIT", "duplicate": false},
+    {"id": "a4", "path": "assets/local_media/retake_bad.jpg", "type": "PHOTO", "quality_score": 0.2, "recommendation": "RETAKE", "category": "station", "tags": ["bad"], "orientation": "PORTRAIT", "duplicate": false},
+    {"id": "a5", "path": "assets/local_media/dup.jpg", "type": "PHOTO", "quality_score": 0.9, "recommendation": "KEEP", "category": "station", "tags": ["dup"], "orientation": "PORTRAIT", "duplicate": true}
+  ]
+}

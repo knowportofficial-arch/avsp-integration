@@ -1,0 +1,550 @@
+{
+  "project_id": "belda_qa_short",
+  "format": "9:16",
+  "duration_target": 15.0,
+  "topic": "Belda Railway Station",
+  "scenes": [
+    {
+      "scene_id": "scene_1",
+      "start": 0.0,
+      "duration": 0.543,
+      "narration_segment": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration for scene 1.",
+      "visual_goal": "establishing wide shot",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": null,
+      "punch": null,
+      "sfx": null,
+      "emoji": {
+        "emoji": "📍",
+        "start": 0.5,
+        "duration": 2.0,
+        "position": "center",
+        "scale": 1.0,
+        "reason": "location marker"
+      },
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_2",
+      "start": 0.543,
+      "duration": 1.304,
+      "narration_segment": "Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for scene 2.",
+      "visual_goal": "location context",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_1",
+        "to_scene": "scene_2",
+        "type": "hard_cut",
+        "duration": 0.0,
+        "reason": "clean cut"
+      },
+      "punch": null,
+      "sfx": null,
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_3",
+      "start": 1.848,
+      "duration": 1.63,
+      "narration_segment": "Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear narration for scene 3.",
+      "visual_goal": "historical or background visuals",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_2",
+        "to_scene": "scene_3",
+        "type": "fade",
+        "duration": 0.4,
+        "reason": "creative fade"
+      },
+      "punch": null,
+      "sfx": {
+        "asset": "/home/workdir/artifacts/m8/assets/sfx/impact.m4a",
+        "start": 1.848,
+        "duration": 0.4,
+        "volume": 0.35,
+        "reason": "scene open whoosh"
+      },
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_4",
+      "start": 3.478,
+      "duration": 1.63,
+      "narration_segment": "Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narration for scene 4.",
+      "visual_goal": "primary subject detail",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_3",
+        "to_scene": "scene_4",
+        "type": "hard_cut",
+        "duration": 0.0,
+        "reason": "clean cut"
+      },
+      "punch": {
+        "punch_asset": "assets/punch_library/clips/punch_01.mp4",
+        "start_time": 3.967,
+        "duration": 0.9,
+        "reason": "emphasis on key beat",
+        "confidence": 0.65
+      },
+      "sfx": null,
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_5",
+      "start": 5.109,
+      "duration": 1.63,
+      "narration_segment": "Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narration for scene 5.",
+      "visual_goal": "secondary feature",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_4",
+        "to_scene": "scene_5",
+        "type": "hard_cut",
+        "duration": 0.0,
+        "reason": "clean cut"
+      },
+      "punch": null,
+      "sfx": {
+        "asset": "/home/workdir/artifacts/m8/assets/sfx/reveal.m4a",
+        "start": 5.109,
+        "duration": 0.4,
+        "volume": 0.35,
+        "reason": "scene open whoosh"
+      },
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_6",
+      "start": 6.739,
+      "duration": 1.304,
+      "narration_segment": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "visual_goal": "atmosphere and details",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_5",
+        "to_scene": "scene_6",
+        "type": "fade",
+        "duration": 0.4,
+        "reason": "creative fade"
+      },
+      "punch": null,
+      "sfx": null,
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_7",
+      "start": 8.043,
+      "duration": 1.087,
+      "narration_segment": "Belda Railway Station — People / Activity",
+      "visual_goal": "activity or people",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_6",
+        "to_scene": "scene_7",
+        "type": "hard_cut",
+        "duration": 0.0,
+        "reason": "clean cut"
+      },
+      "punch": {
+        "punch_asset": "assets/punch_library/clips/punch_01.mp4",
+        "start_time": 8.3691,
+        "duration": 0.9,
+        "reason": "emphasis on key beat",
+        "confidence": 0.65
+      },
+      "sfx": {
+        "asset": "/home/workdir/artifacts/m8/assets/sfx/whoosh.m4a",
+        "start": 8.043,
+        "duration": 0.4,
+        "volume": 0.35,
+        "reason": "scene open whoosh"
+      },
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_8",
+      "start": 9.13,
+      "duration": 0.87,
+      "narration_segment": "Belda Railway Station — Summary",
+      "visual_goal": "summary visuals",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": {
+        "from_scene": "scene_7",
+        "to_scene": "scene_8",
+        "type": "hard_cut",
+        "duration": 0.0,
+        "reason": "clean cut"
+      },
+      "punch": null,
+      "sfx": null,
+      "emoji": null,
+      "caption_style": {
+        "emphasis": false,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    },
+    {
+      "scene_id": "scene_9",
+      "start": 10.0,
+      "duration": 5.0,
+      "narration_segment": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+      "visual_goal": "call to action",
+      "media_candidates": [
+        {
+          "asset_id": "a1",
+          "path": "assets/local_media/keep_station.jpg",
+          "source": "local",
+          "quality_score": 0.92,
+          "recommendation": "KEEP",
+          "type": "image",
+          "duration": 0.0,
+          "tags": [
+            "railway",
+            "belda"
+          ],
+          "selection_reason": "M7 preferred KEEP score=0.92"
+        }
+      ],
+      "selected_media": {
+        "asset_id": "a1",
+        "path": "assets/local_media/keep_station.jpg",
+        "source": "local",
+        "quality_score": 0.92,
+        "recommendation": "KEEP",
+        "type": "image",
+        "duration": 0.0,
+        "tags": [
+          "railway",
+          "belda"
+        ],
+        "selection_reason": "M7 preferred KEEP score=0.92"
+      },
+      "selection_reason": "M7 preferred KEEP score=0.92",
+      "cut_style": "standard",
+      "transition": null,
+      "punch": null,
+      "sfx": null,
+      "emoji": null,
+      "caption_style": {
+        "emphasis": true,
+        "style": "default",
+        "position": "bottom"
+      },
+      "caption_emphasis": [],
+      "confidence": 0.75
+    }
+  ],
+  "bgm": {
+    "music_asset": "/home/workdir/artifacts/m8/assets/music/bgm_soft.m4a",
+    "start": 0.0,
+    "duration": 15.0,
+    "base_volume": 0.08,
+    "duck_volume": 0.03,
+    "reason": "local BGM under narration"
+  },
+  "cta_scene_id": "scene_9",
+  "cta_duration": 5.0,
+  "version": "1.0",
+  "confidence": 0.72,
+  "notes": "AI requested but unavailable/invalid — DETERMINISTIC_FALLBACK"
+}

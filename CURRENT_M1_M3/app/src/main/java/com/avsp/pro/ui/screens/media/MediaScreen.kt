@@ -1,0 +1,77 @@
+package com.avsp.pro.ui.screens.media
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.avsp.pro.core.ui.UiState
+import com.avsp.pro.ui.components.EmptyState
+import com.avsp.pro.ui.components.ErrorState
+import com.avsp.pro.ui.components.LoadingState
+import com.avsp.pro.ui.viewmodel.MediaViewModel
+
+@Composable
+fun MediaScreen(viewModel: MediaViewModel) {
+    val state by viewModel.state.collectAsState()
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Media / Assets", style = MaterialTheme.typography.headlineLarge)
+        Text(
+            "Original and generated assets appear here once future modules produce them.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+        )
+        when (val s = state) {
+            is UiState.Idle, is UiState.Loading -> LoadingState("Loading media inventory…")
+            is UiState.Error -> ErrorState(s.message, onRetry = viewModel::refresh)
+            is UiState.Success -> {
+                val totalAssets = s.data.assetsByProject.values.sumOf { it.size }
+                if (s.data.projects.isEmpty()) {
+                    EmptyState(
+                        title = "No projects",
+                        message = "Create a project first. Media folders are created per project.",
+                        actionLabel = "Refresh",
+                        onAction = viewModel::refresh
+                    )
+                } else if (totalAssets == 0) {
+                    EmptyState(
+                        title = "No assets yet",
+                        message = "M1 stores the inventory contract. Camera, TTS, and video modules will populate assets later.",
+                        actionLabel = "Refresh",
+                        onAction = viewModel::refresh
+                    )
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(s.data.projects, key = { it.projectId }) { project ->
+                            val assets = s.data.assetsByProject[project.projectId].orEmpty()
+                            Column {
+                                Text(project.name, style = MaterialTheme.typography.titleLarge)
+                                if (assets.isEmpty()) {
+                                    Text("No assets", style = MaterialTheme.typography.bodyMedium)
+                                } else {
+                                    assets.forEach { asset ->
+                                        Text(
+                                            "${asset.fileName} · ${asset.relativePath}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                TextButton(onClick = viewModel::refresh) { Text("Refresh") }
+            }
+        }
+    }
+}

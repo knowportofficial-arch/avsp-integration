@@ -1,0 +1,58 @@
+{
+  "name": "default_shorts",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "aspect_ratio": "9:16",
+  "video_codec": "libx264",
+  "audio_codec": "aac",
+  "pixel_format": "yuv420p",
+  "intro": {
+    "enabled": false,
+    "duration": 2.0,
+    "background": "black",
+    "text": "AVSP",
+    "text_color": "white",
+    "font_size": 72
+  },
+  "outro": {
+    "enabled": false,
+    "duration": 2.0,
+    "background": "black",
+    "text": "Thanks for watching",
+    "text_color": "white",
+    "font_size": 56
+  },
+  "subtitle": {
+    "enabled": true,
+    "position": "bottom",
+    "margin_v": 120,
+    "font_size": 48,
+    "font_color": "white",
+    "outline_color": "black",
+    "outline_width": 3,
+    "alignment": 2
+  },
+  "text_overlay": {
+    "enabled": false,
+    "position": "top",
+    "font_size": 42,
+    "font_color": "white"
+  },
+  "music": {
+    "enabled": false,
+    "path": null,
+    "volume": 0.08,
+    "duck_under_voice": true
+  },
+  "logo": {
+    "enabled": false,
+    "path": null,
+    "position": "top_right",
+    "scale": 0.12
+  },
+  "scene_defaults": {
+    "fit_mode": "cover",
+    "background": "black"
+  }
+}

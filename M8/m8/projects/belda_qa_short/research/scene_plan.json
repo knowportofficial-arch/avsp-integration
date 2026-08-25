@@ -1,0 +1,74 @@
+[
+  {
+    "scene_id": "scene_1",
+    "title": "Hook / Title",
+    "start": 0.0,
+    "duration": 0.543,
+    "narration_segment": "Belda Railway Station. Hook / Title. This segment covers important aspects of Belda Railway Station with clear narration for scene 1.",
+    "visual_goal": "establishing wide shot"
+  },
+  {
+    "scene_id": "scene_2",
+    "title": "Context",
+    "start": 0.543,
+    "duration": 1.304,
+    "narration_segment": "Belda Railway Station. Context. This segment covers important aspects of Belda Railway Station with clear narration for scene 2.",
+    "visual_goal": "location context"
+  },
+  {
+    "scene_id": "scene_3",
+    "title": "History / Background",
+    "start": 1.848,
+    "duration": 1.63,
+    "narration_segment": "Belda Railway Station. History / Background. This segment covers important aspects of Belda Railway Station with clear narration for scene 3.",
+    "visual_goal": "historical or background visuals"
+  },
+  {
+    "scene_id": "scene_4",
+    "title": "Main Feature 1",
+    "start": 3.478,
+    "duration": 1.63,
+    "narration_segment": "Belda Railway Station. Main Feature 1. This segment covers important aspects of Belda Railway Station with clear narration for scene 4.",
+    "visual_goal": "primary subject detail"
+  },
+  {
+    "scene_id": "scene_5",
+    "title": "Main Feature 2",
+    "start": 5.109,
+    "duration": 1.63,
+    "narration_segment": "Belda Railway Station. Main Feature 2. This segment covers important aspects of Belda Railway Station with clear narration for scene 5.",
+    "visual_goal": "secondary feature"
+  },
+  {
+    "scene_id": "scene_6",
+    "title": "Details / Atmosphere",
+    "start": 6.739,
+    "duration": 1.304,
+    "narration_segment": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+    "visual_goal": "atmosphere and details"
+  },
+  {
+    "scene_id": "scene_7",
+    "title": "People / Activity",
+    "start": 8.043,
+    "duration": 1.087,
+    "narration_segment": "Belda Railway Station — People / Activity",
+    "visual_goal": "activity or people"
+  },
+  {
+    "scene_id": "scene_8",
+    "title": "Summary",
+    "start": 9.13,
+    "duration": 0.87,
+    "narration_segment": "Belda Railway Station — Summary",
+    "visual_goal": "summary visuals"
+  },
+  {
+    "scene_id": "scene_9",
+    "title": "CTA",
+    "start": 10.0,
+    "duration": 5.0,
+    "narration_segment": "Thanks for watching. Follow for more about Belda Railway Station and local places.",
+    "visual_goal": "call to action"
+  }
+]

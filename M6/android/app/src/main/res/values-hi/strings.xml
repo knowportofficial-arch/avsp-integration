@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI वीडियो स्टूडियो प्रो</string>
+    <string name="app_short_name">AVSP</string>
+    <string name="dashboard_title">AVSP क्रिएटर डैशबोर्ड</string>
+    <string name="todays_production">आज का प्रोडक्शन</string>
+    <string name="active_projects">सक्रिय प्रोजेक्ट</string>
+    <string name="pending_capture">कैप्चर लंबित</string>
+    <string name="pending_editing">संपादन लंबित</string>
+    <string name="ready_projects">तैयार प्रोजेक्ट</string>
+    <string name="recent_projects">हाल के प्रोजेक्ट</string>
+    <string name="no_projects_found">कोई प्रोजेक्ट नहीं मिला</string>
+    <string name="create_project_title">नया प्रोजेक्ट बनाएं</string>
+    <string name="project_workspace">प्रोजेक्ट वर्कस्पेस</string>
+    <string name="save_project">सहेजें</string>
+    <string name="camera_screen_title">AVSP कैमरा</string>
+    <string name="camera_permission_required">AVSP कैमरे के लिए कैमरा अनुमति आवश्यक है।</string>
+    <string name="grant_camera_permission">कैमरा अनुमति दें</string>
+    <string name="capture_placeholder">कैप्चर — M1.2 में आ रहा है</string>
+    <string name="switch_camera">कैमरा बदलें</string>
+    <string name="open_camera">कैमरा</string>
+    <string name="camera_unavailable">इस डिवाइस पर कैमरा उपलब्ध नहीं है।</string>
+    <string name="camera_lens_unavailable">चयनित कैमरा लेंस इस डिवाइस पर उपलब्ध नहीं है।</string>
+    <string name="camera_initializing">कैमरा प्रारंभ हो रहा है...</string>
+    <string name="mode_photo">फोटो</string>
+    <string name="mode_video">वीडियो</string>
+    <string name="photo_saved">फोटो गैलरी में सहेजा गया</string>
+    <string name="video_saved">वीडियो गैलरी में सहेजा गया</string>
+</resources>
