@@ -7,6 +7,8 @@
 
 Classification: **PASS** | **NEEDS FIX** | **MISSING** | **FUTURE**
 
+**Environment note:** Cloud install/start failed (see `AVSP_INTEGRATION_AUDIT.md` §0). Contract conclusions are from **files**, not from a certified runtime. No module source changed to work around the environment.
+
 ---
 
 ## 1. Contract Inventory by Boundary
@@ -136,8 +138,11 @@ TEST REQUIRED: Assert adapter output path exists and is listed in export manifes
 
 ### 2.4 M4 Render Contract — **PASS**
 
-**Code:** `M4/AVSP_M4_Video_Engine/app/engines/video_engine.py`  
-**Identical copy:** `M8/m8/vendor/m4/...`
+**Code (two identical locations; neither declared sole canonical):**  
+- `M4/AVSP_M4_Video_Engine/app/engines/video_engine.py`  
+- `M8/m8/vendor/m4/app/engines/video_engine.py`  
+
+Byte-identical trees (SHA-256 match). M8 loads the **vendor** path via `M4Adapter`; do not delete either location in Phase 1.
 
 **`VideoEngine.render(...)` inputs:**
 

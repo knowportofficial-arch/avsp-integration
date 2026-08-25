@@ -3,7 +3,7 @@
 **Phase:** 1 — Audit Only  
 **Date:** 2026-08-25  
 **Authority:** Actual repository files under `/workspace`  
-**Rule:** No source modifications in this phase.
+**Rule:** No source modifications in this phase. Environment install failure is **not** repaired here (see `AVSP_INTEGRATION_AUDIT.md` §0).
 
 Classification legend:
 
@@ -23,8 +23,8 @@ Classification legend:
 | **M1** | `CURRENT_M1_M3/` (`com.avsp.pro`) | Core shell: projects, Room DB, storage, settings, nav, module registry | Android | Kotlin + Compose | **PASS** | 69/69 unit (shared app) | — | M2, M3 (in-app) |
 | **M2** | `CURRENT_M1_M3/` (`com.avsp.pro.script`) | Script AI: topic → `ScriptPackage` JSON | Android | Kotlin | **PASS** | included in 69 | M1 | M3; logical M5 consumer (unwired) |
 | **M3** | `CURRENT_M1_M3/` (`com.avsp.pro.audio`) | TTS/audio: script → WAV segments + `voice.json` | Android | Kotlin | **PASS** (artifact name drift → see contracts) | included in 69 | M1, M2 | Logical M4/M8 (unwired) |
-| **M4** | `M4/AVSP_M4_Video_Engine/` | FFmpeg video engine/assembler | Desktop/Windows Python | Python 3 | **PASS** | 9/9 | FFmpeg, Pillow | M8 (vendored identical copy) |
-| **M4-vendored** | `M8/m8/vendor/m4/` | Frozen byte-identical copy of M4 | Desktop Python | Python 3 | **PASS** (identical to standalone) | covered via M8/M4 tests | same as M4 | `M4Adapter` (constructed; live path uses EffectsComposer) |
+| **M4** | `M4/AVSP_M4_Video_Engine/` | FFmpeg video engine/assembler | Desktop/Windows Python | Python 3 | **PASS** | 9/9 opportunistic | FFmpeg, Pillow | Also present as identical tree under M8 vendor (no canonical pick) |
+| **M4-vendored** | `M8/m8/vendor/m4/` | Byte-identical tree to `M4/…` (M8 load path) | Desktop Python | Python 3 | **PASS** (identity) | covered via M8/M4 tests | same as M4 | `M4Adapter` loads this path; live M8 render uses EffectsComposer |
 | **M5** | `M5/m5_youtube_screen_input/` | YouTube + screen OCR → M2 handoff JSON | Desktop Python | Python 3 | **NEEDS FIX** (sample JSON drift) | 18 run / 0 fail / 1 skip | yt-dlp, Tesseract, OpenCV | Logical M2 (unwired) |
 | **M6** | `M6/android/` (`com.avsp.creator`) | Camera / guided capture | Android | Kotlin + Compose | **PASS** | 39/39 unit | CameraX, ML Kit | M7 (superset) |
 | **M7** | `M7/android/` (`com.avsp.creator`) | Personal dataset + quality (KEEP/REVIEW/RETAKE) on top of M6 | Android | Kotlin | **NEEDS FIX** (no file export for M8) | 63/63 unit | M6 capture tree | Logical M8 (manual only) |
@@ -103,7 +103,7 @@ Classification legend:
 | **Schemas** | `templates/default_shorts.json`, `default_landscape.json` |
 | **Dependencies** | system `ffmpeg`/`ffprobe`; pip `Pillow>=10` |
 | **Tests** | A–H + landscape — **9/9 PASS** this host |
-| **vs vendor** | **Byte-identical** to `M8/m8/vendor/m4` (10 files, matching MD5s) |
+| **vs vendor** | **Byte-identical** to `M8/m8/vendor/m4` (10 files, matching SHA-256). **Neither declared canonical.** |
 | **Classification** | **PASS** |
 
 ### M5 — YouTube / Screen Input
@@ -207,18 +207,21 @@ No automated cross-process bridges exist. Integration must be adapters + shared 
 
 ---
 
-## 4. Build / Runtime Snapshot (audit host)
+## 4. Build / Runtime Snapshot (opportunistic host)
 
-| Module | Build/Run command used | Result |
-|--------|------------------------|--------|
-| CURRENT_M1_M3 | `bash ./gradlew testDebugUnitTest` | 69 PASS |
-| M4 | `python3 tests/test_video_engine.py` (venv+Pillow) | 9 PASS |
-| M5 | `python test_runner.py` | 18 PASS / 1 skip |
-| M6 | `./gradlew testDebugUnitTest` | 39 PASS |
-| M7 | `./gradlew testDebugUnitTest` | 63 PASS |
-| M8 | `python -m unittest discover -s tests` | 43 PASS / **2 FAIL** |
-| M9 | `pytest tests/test_m9_all.py` | 32 PASS |
-| M10 | — | **MISSING** |
+**Caveat:** Cloud environment install/start **failed** (`.cursor/start.sh` missing; `setup_failed`). Results below are opportunistic runs where tools happened to be present — **not** a certified green environment. Failures caused only by missing env tooling would be recorded as **ENVIRONMENT LIMITATION** (none of the rows below were blocked solely by that hook; M8’s 2 failures are missing punch media assets in-repo).
+
+| Module | Build/Run command used | Result | Limitation note |
+|--------|------------------------|--------|-----------------|
+| CURRENT_M1_M3 | `bash ./gradlew testDebugUnitTest` | 69 PASS | Opportunistic; env start failed |
+| M4 | `python3 tests/test_video_engine.py` (venv+Pillow) | 9 PASS | Opportunistic |
+| M5 | `python test_runner.py` | 18 PASS / 1 skip | Opportunistic |
+| M6 | `./gradlew testDebugUnitTest` | 39 PASS | Opportunistic |
+| M7 | `./gradlew testDebugUnitTest` | 63 PASS | Opportunistic |
+| M8 | `python -m unittest discover -s tests` | 43 PASS / **2 FAIL** | Failures = missing `punch_library/clips/*.mp4` (module packaging), not install hook |
+| M9 | `pytest tests/test_m9_all.py` | 32 PASS | Opportunistic |
+| M10 | — | **MISSING** | Folder absent |
+| Env start | `bash .cursor/start.sh` | **FAIL** exit 127 | **ENVIRONMENT LIMITATION** — not repaired |
 
 ---
 
@@ -231,7 +234,8 @@ No automated cross-process bridges exist. Integration must be adapters + shared 
 | M3 audio | PASS |
 | M3→M4 audio bridge | MISSING |
 | M4 engine | PASS |
-| M4 vs vendor/m4 identity | PASS (identical) |
+| M4 vs vendor/m4 identity | PASS (byte-identical; **no canonical pick**) |
+| Cloud install/start script | ENVIRONMENT LIMITATION (failed; not repaired) |
 | M5 ingest | PASS (code) / NEEDS FIX (samples) |
 | M5→M2 bridge | MISSING |
 | M6 capture | PASS |

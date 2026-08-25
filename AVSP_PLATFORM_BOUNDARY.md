@@ -11,6 +11,8 @@
 
 Do **not** force heavy Windows processing into Android.
 
+**Environment note:** The Cloud Agent install/update script **failed** (missing `.cursor/start.sh`; `setup_failed`). That is an **ENVIRONMENT LIMITATION** recorded in `AVSP_INTEGRATION_AUDIT.md` §0 — it does **not** change the Android/Windows product boundary, and it was **not** repaired in this phase.
+
 ---
 
 ## 1. Platform Assignment Matrix

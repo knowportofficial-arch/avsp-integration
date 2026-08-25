@@ -17,23 +17,58 @@ Companion documents:
 - `AVSP_PLATFORM_BOUNDARY.md`
 - `AVSP_DUPLICATE_COMPONENTS.md`
 
+**Source code in this phase:** not modified. Environment not debugged or repaired.
+
+---
+
+## 0. Environment / Install-Script Failure (separate from module audit)
+
+The Cloud Agent environment panel reports install/setup failure. **This is recorded here only.** No environment repair was performed in Phase 1.
+
+| Item | Observation |
+|------|-------------|
+| Dashboard event | `setup_failed` — “Failed to start the development environment. The update script in your configuration failed during VM startup.” |
+| `start-user.status` | `127` (command not found) |
+| `start-user.log` | `bash: .cursor/start.sh: No such file or directory` |
+| Workspace `.cursor/` | **Absent** — no `start.sh` / `environment.json` in repo checkout |
+| `/tmp/cursor/async-install/` | No durable `install-user.status` present at inspection time |
+| Build resolution | `no_finished_builds` (environment-info) |
+| Audit action taken | **None** — do not debug/modify environment in this phase |
+
+```
+ISSUE: Cloud environment install/update script failed at VM startup.
+ROOT CAUSE (observed only): start hook invokes `.cursor/start.sh`, which is missing from the workspace; setup event kind=setup_failed.
+IMPACT: Environment “may not work as expected.” Some services may be unavailable; runtime tests are opportunistic, not a certified CI baseline.
+SEVERITY: HIGH for agent DX / reproducibility; does **not** by itself invalidate structural file audit
+RECOMMENDED FIX: Out of scope for Phase 1. Later: restore or define `.cursor/start.sh` / environment config — do not change M1–M9 modules to work around this.
+TEST REQUIRED: After env repair (future phase), re-run module test matrix on a healthy install.
+```
+
+**Test-result interpretation rule for this audit:**
+
+- Structural/contract conclusions are based on **repository files** (authoritative).
+- Where unit tests were executed successfully despite the failed install hook, results are reported as **opportunistic host evidence**.
+- Where a test cannot run or is incomplete because of the environment failure, classify as **ENVIRONMENT LIMITATION**, not a module defect.
+- Do **not** change module code to compensate for the install failure.
+
 ---
 
 ## 1. Complete Module Status
 
-| Module | Path | Platform | Lang | Classification | Test status (audit host) | Notes |
-|--------|------|----------|------|----------------|--------------------------|-------|
+| Module | Path | Platform | Lang | Classification | Test status (opportunistic host) | Notes |
+|--------|------|----------|------|----------------|----------------------------------|-------|
 | M1 | `CURRENT_M1_M3` | Android | Kotlin | **PASS** | 69/69 with M2/M3 | Shell, Room, storage |
 | M2 | in M1–M3 app | Android | Kotlin | **PASS** | included | Script AI frozen |
 | M3 | in M1–M3 app | Android | Kotlin | **PASS** | included | Audio; `voice.mp3` drift |
-| M4 | `M4/AVSP_M4_Video_Engine` | Desktop Py | Python | **PASS** | 9/9 | FFmpeg assembler |
-| M4 vendor | `M8/m8/vendor/m4` | Desktop Py | Python | **PASS** | identical to M4 | Frozen dependency |
+| M4 | `M4/AVSP_M4_Video_Engine` | Desktop Py | Python | **PASS** | 9/9 opportunistic | FFmpeg assembler; see §M4 dual-tree |
+| M4 vendor | `M8/m8/vendor/m4` | Desktop Py | Python | **PASS** | byte-identical tree | Role = M8 vendored copy; **not declared canonical over** `M4/` |
 | M5 | `M5/m5_youtube_screen_input` | Desktop Py | Python | **NEEDS FIX** | 18/0 fail/1 skip | Sample schema drift |
 | M6 | `M6/android` | Android | Kotlin | **PASS** | 39/39 | Capture |
 | M7 | `M7/android` | Android | Kotlin | **NEEDS FIX** | 63/63 | APIs OK; export missing |
-| M8 | `M8/m8` | Desktop Py | Python | **NEEDS FIX** | 43 pass / **2 fail** | Punch assets; M4 stage idle |
+| M8 | `M8/m8` | Desktop Py | Python | **NEEDS FIX** | 43 pass / **2 fail** | Punch assets missing (module packaging); live render ≠ M4Adapter |
 | M9 | `M9/m9` | Desktop Py | Python | **PASS** | 32/32 | Mock publish |
 | M10 | *(none)* | — | — | **MISSING** | — | Listed in manifest only |
+| Env install/start | Cloud VM | — | — | **ENVIRONMENT LIMITATION** | start exit 127 | Separate from module PASS/FAIL |
 
 **Reserved stubs in CURRENT_M1_M3** (`video`, `youtube`, `screen`, `ocr`, `camera`, `dataset`, `automation`, `publishing`, `quality`, …): **FUTURE** placeholders — **PASS** only if left unimplemented.
 
@@ -66,8 +101,9 @@ M1 ──in-process──► M2 ──in-process──► M3
 
 M6 ──same APK (M7 tree)──► M7 APIs
 
-M4 ══byte-identical══► M8/vendor/m4
-M8 ──constructs──► M4Adapter (tests)
+M4/AVSP_M4_Video_Engine ══byte-identical══ M8/m8/vendor/m4
+     (neither declared canonical; both retained)
+M8 ──constructs──► M4Adapter(vendor/m4) [tests; idle on happy path]
 M8 ──live render──► EffectsComposer ──► render/final.mp4
 M8 ──file──► M7Adapter (expects snapshot JSON; not fed by Android)
 
@@ -112,9 +148,9 @@ Full field maps: `AVSP_CONTRACT_MAP.md`.
 
 See `AVSP_DUPLICATE_COMPONENTS.md`. Headline:
 
-1. **M4 ↔ vendor/m4:** identical — keep both (**PASS**).  
-2. **M4 VideoEngine ↔ EffectsComposer:** complementary; production uses EffectsComposer (**NEEDS FIX** docs).  
-3. **M6 ↔ M7:** M7 supersets M6 (**PASS** prefer M7).  
+1. **`M4/` ↔ `M8/m8/vendor/m4`:** byte-identical content; **roles** differ (standalone package vs vendored load path). **No canonical winner chosen.** Keep both (**PASS** identity / **FUTURE** packaging).  
+2. **M4 VideoEngine ↔ EffectsComposer:** complementary; M8 production uses EffectsComposer (**NEEDS FIX** docs/stage name).  
+3. **M6 ↔ M7:** M7 supersets M6 (**PASS** prefer M7 for dataset+capture).  
 4. **Pro ↔ Creator apps:** parallel (**NEEDS FIX** strategy; no blind merge).  
 5. **Stub folders ↔ real modules:** do not reimplement (**PASS** if untouched).
 
@@ -250,13 +286,14 @@ Respect: audit → minimum adapters → test before widen. **Do not merge module
 1. **Do not rewrite** completed M1–M9 engine internals without a reproducible defect.  
 2. **Do not recreate** M4–M9 inside `CURRENT_M1_M3` stub folders.  
 3. **Do not blindly merge** Android Pro + Creator apps or Android + Python trees.  
-4. **Do not delete** `M4/` or `M8/m8/vendor/m4` because they look redundant — they are an intentional identical freeze.  
+4. **Do not delete** `M4/` or `M8/m8/vendor/m4` — they are byte-identical but **neither is declared canonical** in this audit; packaging policy is **FUTURE**.  
 5. **Do not replace** EffectsComposer with M4 (or vice versa) for preference.  
 6. **Do not force** FFmpeg / yt-dlp / desktop OCR / publishing stacks onto Android.  
 7. **Do not implement** new product features in Phase 1 (this audit).  
 8. **Do not choose** a “single script engine” by deleting M2 or M8 CreativeDirector without a mode policy.  
 9. **Do not remove** M8 FinalQC because M10 is missing.  
-10. **Repair before rewrite; verify before modifying** (`MASTER_PROJECT_PROMPT.txt`).
+10. **Do not debug/modify the failed Cloud install/start environment** as part of this audit phase.  
+11. **Repair before rewrite; verify before modifying** (`MASTER_PROJECT_PROMPT.txt`).
 
 ---
 
@@ -310,6 +347,7 @@ Respect: audit → minimum adapters → test before widen. **Do not merge module
 | I13 | GuidedCapture not always ingested to dataset | MEDIUM | NEEDS FIX |
 | I14 | Final MP4 path conventions differ | MEDIUM | NEEDS FIX |
 | I15 | Template logo/text_overlay unread in M4 | LOW | FUTURE |
+| I16 | Cloud install/start script failed (`.cursor/start.sh` missing) | HIGH (DX) | **ENVIRONMENT LIMITATION** (not a module defect; not repaired) |
 
 Each major issue’s ROOT CAUSE / IMPACT / RECOMMENDED FIX / TEST REQUIRED appears in companion docs and §7 above.
 
@@ -317,8 +355,10 @@ Each major issue’s ROOT CAUSE / IMPACT / RECOMMENDED FIX / TEST REQUIRED appea
 
 ## 12. Audit Verdict
 
-The repository contains **solid, mostly test-green reference modules** for M1–M9, with **M10 missing**. The blocking problem for full AVSP integration is **not** a need to rewrite engines — it is the **absence of thin adapters and a file-based Android↔Windows boundary**, plus a few **contract drifts** (audio shape, M7 snapshot vocabulary, M5 samples) and **M8 packaging gaps** (punch media).
+The repository contains **solid reference modules** for M1–M9, with **M10 missing**. The blocking problem for full AVSP integration is **not** a need to rewrite engines — it is the **absence of thin adapters and a file-based Android↔Windows boundary**, plus **contract drifts** (audio shape, M7 snapshot vocabulary, M5 samples) and **M8 packaging gaps** (punch media).
 
-**M4 standalone and `m8/vendor/m4` are byte-identical.** Keep both. Live M8 rendering uses **EffectsComposer**, with M4 retained as a frozen dependency.
+**M4 comparison:** `M4/AVSP_M4_Video_Engine` and `M8/m8/vendor/m4` are **byte-identical**. Roles differ (standalone package vs M8 vendored load path). **Neither path is declared the sole canonical implementation** in this audit. Live M8 rendering uses **EffectsComposer**; `M4Adapter` is constructed but not used on the happy path.
+
+**Environment (separate):** Cloud install/update script **failed** (`setup_failed`; `.cursor/start.sh` missing → start exit 127). Recorded only; **not repaired**. Runtime tests above are opportunistic host evidence, not a certified environment baseline.
 
 **Phase 1 complete. STOP. Do not implement adapters until a follow-up implementation phase is explicitly started.**
