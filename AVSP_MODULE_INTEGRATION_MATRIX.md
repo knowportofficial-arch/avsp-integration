@@ -1,250 +1,161 @@
 # AVSP Module Integration Matrix
 
-**Phase:** 1 — Audit Only  
+**Phase:** 1 — Audit Only (read-only)  
 **Date:** 2026-08-25  
 **Authority:** Actual repository files under `/workspace`  
-**Rule:** No source modifications in this phase. Environment install failure is **not** repaired here (see `AVSP_INTEGRATION_AUDIT.md` §0).
+**Allowed edits this phase:** this document set only  
 
-Classification legend:
-
-| Status | Meaning |
-|--------|---------|
-| **PASS** | Complete, tested, usable as reference; integrate via adapters only |
-| **NEEDS FIX** | Exists but has contract drift, incomplete wiring, or test gaps before integration |
-| **MISSING** | Required for end-to-end flow but absent from the workspace |
-| **FUTURE** | Documented placeholder / reserved; not required for first integration slice |
+Classification: **PASS** | **NEEDS FIX** | **MISSING** | **FUTURE** | **ENVIRONMENT LIMITATION**
 
 ---
 
-## 1. Master Module Matrix
-
-| ID | Location | Purpose | Platform | Language | Status | Tests (this host) | Depends on | Consumed by |
-|----|----------|---------|----------|----------|--------|-------------------|------------|-------------|
-| **M1** | `CURRENT_M1_M3/` (`com.avsp.pro`) | Core shell: projects, Room DB, storage, settings, nav, module registry | Android | Kotlin + Compose | **PASS** | 69/69 unit (shared app) | — | M2, M3 (in-app) |
-| **M2** | `CURRENT_M1_M3/` (`com.avsp.pro.script`) | Script AI: topic → `ScriptPackage` JSON | Android | Kotlin | **PASS** | included in 69 | M1 | M3; logical M5 consumer (unwired) |
-| **M3** | `CURRENT_M1_M3/` (`com.avsp.pro.audio`) | TTS/audio: script → WAV segments + `voice.json` | Android | Kotlin | **PASS** (artifact name drift → see contracts) | included in 69 | M1, M2 | Logical M4/M8 (unwired) |
-| **M4** | `M4/AVSP_M4_Video_Engine/` | FFmpeg video engine/assembler | Desktop/Windows Python | Python 3 | **PASS** | 9/9 opportunistic | FFmpeg, Pillow | Also present as identical tree under M8 vendor (no canonical pick) |
-| **M4-vendored** | `M8/m8/vendor/m4/` | Byte-identical tree to `M4/…` (M8 load path) | Desktop Python | Python 3 | **PASS** (identity) | covered via M8/M4 tests | same as M4 | `M4Adapter` loads this path; live M8 render uses EffectsComposer |
-| **M5** | `M5/m5_youtube_screen_input/` | YouTube + screen OCR → M2 handoff JSON | Desktop Python | Python 3 | **NEEDS FIX** (sample JSON drift) | 18 run / 0 fail / 1 skip | yt-dlp, Tesseract, OpenCV | Logical M2 (unwired) |
-| **M6** | `M6/android/` (`com.avsp.creator`) | Camera / guided capture | Android | Kotlin + Compose | **PASS** | 39/39 unit | CameraX, ML Kit | M7 (superset) |
-| **M7** | `M7/android/` (`com.avsp.creator`) | Personal dataset + quality (KEEP/REVIEW/RETAKE) on top of M6 | Android | Kotlin | **NEEDS FIX** (no file export for M8) | 63/63 unit | M6 capture tree | Logical M8 (manual only) |
-| **M8** | `M8/m8/` | Autonomous production pipeline → `final.mp4` + QC | Desktop/Windows Python | Python 3.10+ | **NEEDS FIX** (2 tests fail; M4 stage unused) | 45 / **2 fail** | FFmpeg; vendored M4; M7 snapshot JSON | Logical M9 |
-| **M9** | `M9/m9/` | Multi-platform publishing queue | Desktop Python | Python 3 | **PASS** | 32/32 | optional platform SDKs | End of publish path |
-| **M10** | *(absent)* | QC / final acceptance (manifest + instructions) | TBD | TBD | **MISSING** | N/A | M8 final + reports | Operator / CI |
-
----
-
-## 2. Per-Module Detail
-
-### M1 — Core & UI
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Application shell: project CRUD, Room, storage layout, encrypted settings, logs, module status |
-| **Platform** | Android minSdk 26 / target 35 |
-| **Language** | Kotlin 2.0.21, Jetpack Compose |
-| **Entry points** | `AvspApplication`, `MainActivity`, nav destinations under `com.avsp.pro.ui` |
-| **Public APIs** | `ProjectRepository`, `AvspStorage`, `SecureConfigStore`, `IntegrationContracts` stubs |
-| **Inputs** | Project name/description/aspect/language; secure credential slots |
-| **Outputs** | Room DB + `filesDir/projects/<id>/` layout; artifact name constants |
-| **Schemas** | `app/schemas/com.avsp.pro.database*.json` (Room v1/v2) |
-| **Filesystem** | `originals/`, `working/`, `generated/{script,audio,video}`, `published/`, `logs/` |
-| **Dependencies** | Single Gradle `:app`; Room, Compose, WorkManager, security-crypto |
-| **Tests** | `M1CoreSuiteTest` + contracts/settings/secrets scans — PASS |
-| **Build** | JDK 17+, AGP 8.7.2, Gradle 8.9 |
-| **Runtime** | Android API ≥ 26 |
-| **Other modules** | Seeds M4–M9 status as display-only FROZEN |
-| **Duplicates** | Parallel app vs `com.avsp.creator` (M6/M7) |
-| **Bridges** | No Android↔Windows job/export bridge |
-| **Classification** | **PASS** |
-
-### M2 — Script AI
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Topic → structured editable `ScriptPackage` |
-| **Platform / Lang** | Android / Kotlin (`com.avsp.pro.script`) |
-| **Entry points** | `ScriptAiScreen`, `ScriptRepository`, `MockScriptGenerator` |
-| **Public APIs** | `ScriptGenerationRequest` → `ScriptPackage`; `ScriptToTtsContract` |
-| **Inputs** | topic, language (`en`/`bn`/`hi`), duration, aspect, content type |
-| **Outputs** | `generated/script/{id}.json` + canonical `script.json` |
-| **Handoff out** | `ScriptNarrationHandoff` → M3 |
-| **Tests** | `M2ScriptAiTest` — PASS |
-| **Depends on** | M1 storage/secure config |
-| **Bridges** | Does **not** consume M5 `youtube_input.json` / `screen_input.json` |
-| **Classification** | **PASS** (bridge to M5 = MISSING) |
-
-### M3 — Audio / TTS
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Approved script → scene-aligned WAV package |
-| **Platform / Lang** | Android / Kotlin (`com.avsp.pro.audio`) |
-| **Entry points** | `AudioTtsScreen`, `AudioRepository`, Mock/Android TTS engines |
-| **Public APIs** | `AudioPackage`, `AudioToVideoContract` → `AudioToVideoHandoff` |
-| **Inputs** | M2 handoff / saved `script.json` |
-| **Outputs** | `generated/audio/{packageId}/*.wav` + `package.json` + `voice.json` |
-| **Contract note** | M1 promises `voice.mp3`; M3 does **not** write it |
-| **Format** | WAV pcm_s16le 16 kHz mono segments |
-| **Tests** | `M3AudioTtsTest` — PASS |
-| **Bridges** | No export to M4 `audio_path` / M8 narration |
-| **Classification** | **PASS** module; artifact-name drift = **NEEDS FIX** at integration layer |
-
-### M4 — Video Engine (standalone)
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Local FFmpeg assembly: media + audio + optional subs → MP4 + render JSON |
-| **Platform / Lang** | Desktop Python (Windows-target for production) |
-| **Entry points** | `VideoEngine.render()`, CLI `python -m app.engines.video_engine`, planner stub `AutonomousVideoEngine` |
-| **Public APIs** | `render(script, audio_path, media, template, subtitles, music_path, intro, outro, …) → RenderResult` |
-| **Inputs** | media list, narration path, template name/path, optional script dict |
-| **Outputs** | `{project_id}_final.mp4`, `{project_id}_render.json` under `output/` |
-| **Schemas** | `templates/default_shorts.json`, `default_landscape.json` |
-| **Dependencies** | system `ffmpeg`/`ffprobe`; pip `Pillow>=10` |
-| **Tests** | A–H + landscape — **9/9 PASS** this host |
-| **vs vendor** | **Byte-identical** to `M8/m8/vendor/m4` (10 files, matching SHA-256). **Neither declared canonical.** |
-| **Classification** | **PASS** |
-
-### M5 — YouTube / Screen Input
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Ingest YouTube URL / screen media → research JSON for M2 |
-| **Platform / Lang** | Desktop Python |
-| **Entry points** | `YouTubeIngestor`, `ScreenIngestor` (library; no `main.py`) |
-| **Public APIs** | exports in `__init__.py`; OCR adapters Tesseract / MLKit stub |
-| **Inputs** | YouTube URL; video/image paths |
-| **Outputs** | `YouTubeOutput` / `ScreenOutput` dicts (see `M2_HANDOFF.md`) |
-| **Schema drift** | `sample_outputs/*.json` **≠** runtime dataclasses |
-| **Dependencies** | yt-dlp, OpenCV, pytesseract, system Tesseract (+ ben/hin) |
-| **Tests** | 18 / 0 fail / 1 skip |
-| **Bridges** | Not wired into M2 or M8 |
-| **Classification** | **NEEDS FIX** (samples + bridge) |
-
-### M6 — Camera Capture
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Guided + mission camera capture → `clip.mp4` / `metadata.json` / `thumbnail.jpg` |
-| **Platform / Lang** | Android `com.avsp.creator` |
-| **Entry points** | `MainActivity`, `GuidedCaptureActivity`, `CameraViewModel` |
-| **Outputs** | External files `AVSP/Guided/...`; Room media rows (basic quality %) |
-| **Tests** | 39/39 PASS |
-| **Relation to M7** | Capture sources are identical inside M7 (M7 = M6 + dataset) |
-| **Classification** | **PASS** |
-
-### M7 — Personal Dataset
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Quality scoring, categories, KEEP/REVIEW/RETAKE, selection APIs for M4/M8 |
-| **Platform / Lang** | Android `com.avsp.creator` (superset of M6) |
-| **Entry points** | Same UI as M6 + `DatasetRepository`, `MediaSelectionApi`, `DatasetAutomationContract` |
-| **Public APIs** | `findBestMedia`, `snapshot`, `findKeepable`, `reanalyzeAll` |
-| **Outputs** | In-memory `DatasetSnapshot` / Room enrichment; thumbnails under `filesDir/thumbnails/` |
-| **Gap** | **No writer** for `m7_snapshot.json`; field names ≠ M8 adapter (`fileUri` vs `path`, etc.) |
-| **Tests** | 63/63 PASS |
-| **Classification** | **NEEDS FIX** (export bridge) |
-
-### M8 — Autonomous Production
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Topic → research/script/EDL/timeline → effects render → QC → `final.mp4` |
-| **Platform / Lang** | Windows-first desktop Python |
-| **Entry points** | `main.py` CLI; `AutonomousProductionController.run()` |
-| **Public APIs** | Controller + schemas `CreativeEDL`, `Timeline`; adapters M4/M7/Pexels |
-| **Project layout** | `projects/<id>/{input,research,media,edl,timeline,render,qc,logs}/` |
-| **Render path** | Stage `call_m4_renderer` actually calls **`EffectsComposer`**, not `M4Adapter.render()` |
-| **M4 role** | Vendored identical engine kept; adapter tested; not used on happy path |
-| **M7 role** | File/JSON only via `M7Adapter` |
-| **Tests** | 45 total, **2 FAILED** (missing `assets/punch_library/clips/*.mp4`) |
-| **Classification** | **NEEDS FIX** |
-
-### M9 — Publishing
-
-| Field | Finding |
-|-------|---------|
-| **Purpose** | Queue + publish final MP4 to YouTube/FB/IG/Telegram/Web (mock-default) |
-| **Platform / Lang** | Desktop Python |
-| **Entry points** | `main.py` (`publish`, `process-queue`, `status`, …); `PublishingController` |
-| **Inputs** | `PublishingJobCreate` (project_id, video_path, metadata, platforms) |
-| **Outputs** | SQLite queue + analytics JSON; platform status payloads |
-| **Tests** | 32/32 PASS (mock) |
-| **Bridges** | No auto-ingest from M8 `pipeline_report.json` / `final.mp4` |
-| **Classification** | **PASS** module; M8→M9 bridge = **MISSING** |
-
-### M10 — QC / Acceptance
-
-| Field | Finding |
-|-------|---------|
-| **Manifest** | Listed in `MODULE_MANIFEST.txt` and `INTEGRATION_INSTRUCTIONS.md` |
-| **Workspace** | `/workspace/M10` **does not exist** |
-| **Partial substitute** | M8 `FinalQC` + `qc/` reports; `CURRENT_M1_M3/quality/` stub README only |
-| **Classification** | **MISSING** |
-
----
-
-## 3. Logical vs Physical Flow
-
-**Documented logical flow:**
+## Environment limitation (applies to all runtime rows)
 
 ```
-M1 → M2 → M3 → M5? → M6/M7 → M4 → M8 → M9 → M10/QC
+ENVIRONMENT LIMITATION
+- .cursor/install.sh unavailable in the audited environment
+- .cursor/start.sh unavailable in the audited environment
+- therefore affected runtime checks cannot be treated as module failures
+- environment was NOT modified during Phase 1
 ```
 
-**Physical reality today:**
-
-```
-Android app A (com.avsp.pro):     M1 ──► M2 ──► M3          [isolated]
-Android app B (com.avsp.creator): M6 ──► M7                  [isolated]
-Desktop Python:                   M5 (orphan) | M4 ←vendor─ M8 ─?→ M9
-                                  M10 absent
-```
-
-No automated cross-process bridges exist. Integration must be adapters + shared artifact directories, not merges.
+Evidence: workspace `.cursor/` absent; `start-user.status=127`; log `bash: .cursor/start.sh: No such file or directory`; dashboard `setup_failed`.
 
 ---
 
-## 4. Build / Runtime Snapshot (opportunistic host)
+## 1. Master matrix M1–M10
 
-**Caveat:** Cloud environment install/start **failed** (`.cursor/start.sh` missing; `setup_failed`). Results below are opportunistic runs where tools happened to be present — **not** a certified green environment. Failures caused only by missing env tooling would be recorded as **ENVIRONMENT LIMITATION** (none of the rows below were blocked solely by that hook; M8’s 2 failures are missing punch media assets in-repo).
-
-| Module | Build/Run command used | Result | Limitation note |
-|--------|------------------------|--------|-----------------|
-| CURRENT_M1_M3 | `bash ./gradlew testDebugUnitTest` | 69 PASS | Opportunistic; env start failed |
-| M4 | `python3 tests/test_video_engine.py` (venv+Pillow) | 9 PASS | Opportunistic |
-| M5 | `python test_runner.py` | 18 PASS / 1 skip | Opportunistic |
-| M6 | `./gradlew testDebugUnitTest` | 39 PASS | Opportunistic |
-| M7 | `./gradlew testDebugUnitTest` | 63 PASS | Opportunistic |
-| M8 | `python -m unittest discover -s tests` | 43 PASS / **2 FAIL** | Failures = missing `punch_library/clips/*.mp4` (module packaging), not install hook |
-| M9 | `pytest tests/test_m9_all.py` | 32 PASS | Opportunistic |
-| M10 | — | **MISSING** | Folder absent |
-| Env start | `bash .cursor/start.sh` | **FAIL** exit 127 | **ENVIRONMENT LIMITATION** — not repaired |
+| ID | Source location | Platform | Lang | Build | Classification | Integration readiness | Evidence |
+|----|-----------------|----------|------|-------|----------------|----------------------|----------|
+| M1 | `CURRENT_M1_M3/` (`com.avsp.pro`) | Android | Kotlin | Gradle `:app` | **PASS** | Ready in-app | Room, nav, storage, contracts |
+| M2 | `CURRENT_M1_M3/.../script/` | Android | Kotlin | same app | **PASS** | Ready → M3 | `ScriptPackage`, handoff |
+| M3 | `CURRENT_M1_M3/.../audio/` | Android | Kotlin | same app | **PASS** | Bridge to M4/M8 **MISSING** | WAV segments + `voice.json` |
+| M4 | `M4/AVSP_M4_Video_Engine/` | Desktop Python | Python | none (script) | **PASS** | Dual-tree with vendor; **no canonical pick** | 10 tracked files |
+| M4v | `M8/m8/vendor/m4/` | Desktop Python | Python | vendored | **PASS** (identity) | M8 `M4Adapter` load path | byte-identical to M4 tracked set |
+| M5 | `M5/m5_youtube_screen_input/` | Desktop Python | Python | pip reqs | **NEEDS FIX** | Bridge to M2 **MISSING** | samples ≠ runtime |
+| M6 | `M6/android/` (`com.avsp.creator`) | Android | Kotlin | Gradle | **PASS** | Superseded-in-tree by M7 for dataset | capture |
+| M7 | `M7/android/` (`com.avsp.creator`) | Android | Kotlin | Gradle | **NEEDS FIX** | Export to M8 **MISSING** | APIs exist; no JSON writer |
+| M8 | `M8/m8/` | Desktop Python | Python | none | **NEEDS FIX** | Core Windows pipeline; bridges incomplete | EffectsComposer live path |
+| M9 | `M9/m9/` | Desktop Python | Python | none | **PASS** | Bridge from M8 **MISSING** | mock publish |
+| M10 | *(absent)* | — | — | — | **MISSING** | — | `M10/` not in repo |
 
 ---
 
-## 5. Integration Readiness Scorecard
+## 2. Per-module structural facts
 
-| Component | Classification |
-|-----------|----------------|
-| M1 core/UI | PASS |
-| M2 script | PASS |
-| M3 audio | PASS |
-| M3→M4 audio bridge | MISSING |
-| M4 engine | PASS |
-| M4 vs vendor/m4 identity | PASS (byte-identical; **no canonical pick**) |
-| Cloud install/start script | ENVIRONMENT LIMITATION (failed; not repaired) |
-| M5 ingest | PASS (code) / NEEDS FIX (samples) |
-| M5→M2 bridge | MISSING |
-| M6 capture | PASS |
-| M7 dataset APIs | PASS (in-process) |
-| M7→M8 JSON export | MISSING / NEEDS FIX |
-| M8 pipeline | NEEDS FIX |
-| M8 EffectsComposer as live renderer | PASS (works) / NEEDS FIX (naming/docs vs M4) |
-| M8→M9 bridge | MISSING |
-| M9 publishing | PASS |
-| M10 QC module | MISSING |
-| Unified Android app (`pro` ↔ `creator`) | FUTURE |
-| End-to-end topic→publish run | MISSING |
+### M1–M3 — `CURRENT_M1_M3/`
+| Item | Evidence |
+|------|----------|
+| Entry | `AvspApplication`, `MainActivity` |
+| Build | `settings.gradle.kts` → `:app`; AGP/Kotlin Gradle |
+| Deps | Room, Compose, WorkManager, security-crypto |
+| Tests | `app/src/test/java/com/avsp/pro/**` |
+| Inputs | Project create; script request; TTS request |
+| Outputs | `generated/script/script.json`; `generated/audio/**/*.wav` + `voice.json` |
+| Paths | `filesDir/projects/<id>/…` |
+| Standalone? | Single Android app embedding M1+M2+M3 |
+
+### M4 — `M4/AVSP_M4_Video_Engine/`
+| Item | Evidence |
+|------|----------|
+| Entry | `VideoEngine.render`, CLI `main` in `video_engine.py` |
+| Build | none; `requirements.txt` = `Pillow>=10.0.0` |
+| Runtime | `ffmpeg`, `ffprobe` |
+| Tests | `tests/test_video_engine.py` |
+| Referenced by | Standalone tests/CLI under this tree |
+| Duplicate | See vendor comparison — tracked sources identical |
+
+### M5 — `M5/m5_youtube_screen_input/`
+| Item | Evidence |
+|------|----------|
+| Entry | `YouTubeIngestor`, `ScreenIngestor` (no `main.py`) |
+| Deps | yt-dlp, opencv, pytesseract, … + system Tesseract |
+| Tests | `tests/`, `test_runner.py` |
+| Outputs | `YouTubeOutput` / `ScreenOutput` (`M2_HANDOFF.md`) |
+| Orphaned? | Not imported by M8/M9; not wired to Android M2 |
+
+### M6 — `M6/android/`
+| Item | Evidence |
+|------|----------|
+| Entry | `MainActivity`, `GuidedCaptureActivity` |
+| Outputs | `AVSP/Guided/.../{clip.mp4,metadata.json,thumbnail.jpg}` |
+| Relation | Capture sources identical inside M7 tree |
+
+### M7 — `M7/android/`
+| Item | Evidence |
+|------|----------|
+| Entry | same UI + `DatasetAutomationContract`, `MediaSelectionApi` |
+| Outputs | In-memory snapshot; Room enrichment; **no** `m7_snapshot.json` writer found |
+| Consumer | Logical M8 `M7Adapter` |
+
+### M8 — `M8/m8/`
+| Item | Evidence |
+|------|----------|
+| Entry | `main.py`, `AutonomousProductionController` |
+| Live render | `EffectsComposer.compose` (stage name `call_m4_renderer`) |
+| M4 load | `M4Adapter(.../vendor/m4)` constructed; not used on happy path |
+| Layout | `projects/<id>/{input,research,media,edl,timeline,render,qc,logs}/` |
+| Output | `render/final.mp4` |
+
+### M9 — `M9/m9/`
+| Item | Evidence |
+|------|----------|
+| Entry | `main.py` CLI; `PublishingController` |
+| Input | `PublishingJobCreate` (`video_path`, metadata, platforms) |
+| Orphaned? | No code import of M8; expects external `video_path` |
+
+### M10
+**M10 = MISSING** — no `/workspace/M10` directory.
+
+---
+
+## 3. Test matrix (system Python / existing Gradle cache — no installs)
+
+| Module | Result category | Detail | Failure class if any |
+|--------|-----------------|--------|----------------------|
+| M1–M3 `testDebugUnitTest` | **PASS** | BUILD SUCCESSFUL (gradle UP-TO-DATE cache present) | — |
+| M4 A–H + landscape | **PASS** ×7; **FAIL** ×2 | B,F need Pillow | **B** missing dependency (Pillow); attributable to env not provisioning pip deps → also **ENVIRONMENT LIMITATION** context |
+| M5 YouTube subset | **PASS** (partial suite ran) | 7 YouTube-related tests executed | — |
+| M5 Screen suite | **NOT RUN — ENVIRONMENT LIMITATION** | `ImportError: cv2` at collection | **B**/D — opencv not installed; env install failed |
+| M8 unittest | **PASS** ×43; **FAIL** ×2 | punch clip paths missing | **C** missing fixture/media (`assets/punch_library/clips/*.mp4`) |
+| M9 pytest | **NOT RUN — ENVIRONMENT LIMITATION** | `No module named pytest` | **B**/D — pytest not installed; no pip install performed |
+| Full certified CI on healthy env | **NOT RUN — ENVIRONMENT LIMITATION** | `.cursor/install.sh` / `start.sh` missing | **D** |
+
+**Rule applied:** missing pip packages after failed install are **not** reported as module logic defects. M8 punch failures are **C** (repo fixtures), not environment.
+
+---
+
+## 4. Dependencies between modules (structural)
+
+```
+M1 → M2 → M3          (in-process Android)
+M5 ╌?→ M2             (MISSING bridge)
+M6 → M7               (same Creator lineage; M7 supersets)
+M7 ╌?→ M8             (MISSING export)
+M3 ╌?→ M4/M8          (MISSING audio bridge)
+M4 ≡ vendor/m4        (identical tracked sources; dual location)
+M8 → EffectsComposer  (live)
+M8 ╌?→ M9             (MISSING bridge)
+*  ╌?→ M10            (MISSING module)
+```
+
+---
+
+## 5. Integration readiness scorecard
+
+| Item | Status |
+|------|--------|
+| M1–M3 in-app | PASS |
+| M4 engine sources | PASS |
+| M4 dual-tree identity | PASS (identical); canonical **not established** |
+| M5 code | PASS / samples NEEDS FIX |
+| M5→M2 | MISSING |
+| M6 | PASS |
+| M7 APIs | PASS |
+| M7→M8 export | MISSING / NEEDS FIX |
+| M8 pipeline | NEEDS FIX (fixtures + stage naming) |
+| M8→M9 | MISSING |
+| M9 | PASS |
+| M10 | MISSING |
+| Android↔Windows bus | MISSING |
+| Environment install/start | **ENVIRONMENT LIMITATION** |
