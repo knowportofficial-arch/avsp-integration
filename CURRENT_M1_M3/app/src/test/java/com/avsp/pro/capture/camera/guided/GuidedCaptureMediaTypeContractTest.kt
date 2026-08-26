@@ -95,8 +95,8 @@ class GuidedCaptureMediaTypeContractTest {
 
     @Test
     fun photoOnlyPlanUsesExplicitSampleFallbackAllVideo() = runBlocking {
-        // Landscape intent in LocalShotPlanner is PHOTO-only.
-        val plan = LocalShotPlanner().createPlan("landscape scenery sunset")
+        // Document intent remains a genuine PHOTO-only plan.
+        val plan = LocalShotPlanner().createPlan("scan this document receipt form")
         assertThat(plan.shots.all { it.mediaType == PlannedMediaType.PHOTO }).isTrue()
 
         val session = GuidedCapturePlanAdapter.fromMasterShotPlanOrSampleFallback(plan)
@@ -120,11 +120,14 @@ class GuidedCaptureMediaTypeContractTest {
         assertThat(session.usedSampleFallback).isFalse()
 
         val byName = session.template.clips.associateBy { it.clipName }
-        assertThat(byName["Cooking setup"]!!.mediaType).isEqualTo(GuidedClipMediaType.PHOTO)
-        assertThat(byName["Cooking setup"]!!.captureInstruction()).contains(" · Photo · ")
+        // Establishing cooking coverage is cinematic VIDEO; stills stay PHOTO.
+        assertThat(byName["Cooking setup"]!!.mediaType).isEqualTo(GuidedClipMediaType.VIDEO)
+        assertThat(byName["Cooking setup"]!!.captureInstruction()).contains("s · ")
         assertThat(byName["Main cooking action"]!!.mediaType).isEqualTo(GuidedClipMediaType.VIDEO)
         assertThat(byName["Main cooking action"]!!.captureInstruction()).contains("s · ")
         assertThat(byName["Food detail"]!!.mediaType).isEqualTo(GuidedClipMediaType.PHOTO)
+        assertThat(byName["Food detail"]!!.captureInstruction()).contains(" · Photo · ")
+        assertThat(byName["Final presentation"]!!.mediaType).isEqualTo(GuidedClipMediaType.PHOTO)
     }
 
     @Test

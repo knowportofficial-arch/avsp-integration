@@ -2,7 +2,20 @@ package com.avsp.pro.capture.camera.planner
 
 import java.util.UUID
 
-/** Deterministic fallback planner. No network and no API key required. */
+/**
+ * Deterministic fallback planner. No network and no API key required.
+ *
+ * AVSP media-type rule (planner decides; Guided Capture adapter must not rewrite):
+ *
+ * VIDEO — cinematic / moving capture footage for the Guided Capture recording path:
+ *   establishing, wide environment, entrance, architecture, interior coverage,
+ *   action / process / demonstration / ambient, and the standard
+ *   Intro → Wide → Medium → Close coverage sequence.
+ *
+ * PHOTO — genuine still captures only:
+ *   intentional portraits / personal photos, documents, texture / detail stills,
+ *   finished-product presentation stills when the shot is meant as a still.
+ */
 class LocalShotPlanner : ShotPlanner {
     override suspend fun createPlan(request: String): MasterShotPlan {
         val text = request.trim().lowercase()
@@ -19,45 +32,54 @@ class LocalShotPlanner : ShotPlanner {
 
         val shots = when (intent) {
             CaptureIntent.PERSON_PORTRAIT -> listOf(
+                // Genuine stills remain PHOTO; only the moving portrait is VIDEO.
                 shot("Take My Photo", "Your main personal photo", PlannedMediaType.PHOTO, PlannedFraming.PORTRAIT, "person", "Keep yourself comfortably framed. Look naturally at the camera.", 100),
                 shot("Natural Portrait Video", "A short natural moving portrait", PlannedMediaType.VIDEO, PlannedFraming.PORTRAIT, "person", "Keep yourself in frame and make a small natural movement.", 90),
                 shot("Photo With Surroundings", "Show you together with the place", PlannedMediaType.PHOTO, PlannedFraming.ENVIRONMENTAL, "person and surroundings", "Keep yourself visible while including enough of the surroundings to tell where you are.", 80),
                 shot("Final Portrait Moment", "A relaxed final portrait", PlannedMediaType.PHOTO, PlannedFraming.PORTRAIT, "person", "Relax, look naturally at the camera, and hold for the capture.", 85)
             )
             CaptureIntent.FOOD -> listOf(
-                shot("Cooking setup", "Establish the cooking environment", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "food preparation area", "Show the workspace and ingredients", 80),
+                // Establishing / action = VIDEO; texture & presentation stills = PHOTO.
+                shot("Cooking setup", "Establish the cooking environment", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "food preparation area", "Show the workspace and ingredients with a stable establishing move.", 80),
                 shot("Main cooking action", "Capture the key preparation action", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "cooking action", "Keep hands and main action visible", 90),
                 shot("Food detail", "Show texture and finished detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "food", "Tight clean composition; sharp texture", 85),
                 shot("Final presentation", "Show the finished dish attractively", PlannedMediaType.PHOTO, PlannedFraming.DETAIL, "finished dish", "Clean background and attractive angle", 95)
             )
             CaptureIntent.TEMPLE -> listOf(
-                shot("Entrance", "Establish the location", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "temple entrance", "Show entrance and surrounding context", 90),
-                shot("Architecture", "Show the main architectural character", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "temple architecture", "Use strong lines and stable framing", 80),
-                shot("Interior", "Show the interior environment", PlannedMediaType.PHOTO, PlannedFraming.MEDIUM, "temple interior", "Only applicable when an interior is visible", 85),
-                shot("Important detail", "Capture a distinctive visual detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "temple detail", "Use a tight composition", 75),
+                // Cinematic coverage = VIDEO; distinctive still detail = PHOTO.
+                shot("Entrance", "Establish the location", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "temple entrance", "Show entrance and surrounding context", 90),
+                shot("Architecture", "Show the main architectural character", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "temple architecture", "Use strong lines and stable framing", 80),
+                shot("Interior", "Show the interior environment", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "temple interior", "Only applicable when an interior is visible", 85),
+                shot("Important detail", "Capture a distinctive visual detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "temple detail", "Use a tight still composition", 75),
                 shot("Ambient activity", "Capture useful atmosphere", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "people/activity", "Record a stable natural moment", 60)
             )
             CaptureIntent.PRODUCT -> listOf(
-                shot("Product overview", "Establish the complete product", PlannedMediaType.PHOTO, PlannedFraming.MEDIUM, "product", "Keep the entire product visible", 90),
+                // Catalog / texture stills = PHOTO; moving use demo = VIDEO.
+                shot("Product overview", "Establish the complete product as a still", PlannedMediaType.PHOTO, PlannedFraming.MEDIUM, "product", "Keep the entire product visible", 90),
+                shot("Use demonstration", "Show the product being used", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "product in use", "Keep the action and product visible", 80),
                 shot("Product detail", "Show important features or texture", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "product detail", "Focus on a distinctive feature", 85),
-                shot("Use demonstration", "Show the product being used", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "product in use", "Keep the action and product visible", 80)
+                shot("Unboxing motion", "Capture the unboxing / reveal movement", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "product unboxing", "Keep hands and product in frame during the reveal", 75)
             )
             CaptureIntent.LANDSCAPE -> listOf(
-                shot("Establishing view", "Show the complete scene", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "landscape", "Level horizon and strong foreground", 90),
-                shot("Visual detail", "Capture a distinctive detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "landscape detail", "Use foreground interest", 65)
+                shot("Establishing view", "Show the complete scene", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "landscape", "Level horizon and strong foreground", 90),
+                shot("Visual detail", "Capture a distinctive detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "landscape detail", "Use foreground interest for a still detail", 65)
             )
             CaptureIntent.DOCUMENT -> listOf(
                 shot("Document", "Capture the complete document", PlannedMediaType.PHOTO, PlannedFraming.DOCUMENT, "document", "Keep all edges visible and text legible", 100)
             )
             CaptureIntent.EVENT -> listOf(
-                shot("Event establishing", "Show the venue and scale", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "event venue", "Show the environment and activity", 85),
-                shot("Main action", "Capture the principal activity", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "event action", "Keep the main action centred and stable", 95),
-                shot("Event detail", "Capture a characteristic detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "event detail", "Find a distinctive visual", 70)
+                // PHOTO → VIDEO → PHOTO → VIDEO mixed coverage.
+                shot("Guest still", "A clear still of a key person or guest", PlannedMediaType.PHOTO, PlannedFraming.MEDIUM, "guest", "Frame a natural portrait still", 70),
+                shot("Event establishing", "Show the venue and scale", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "event venue", "Show the environment and activity", 85),
+                shot("Event detail", "Capture a characteristic detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "event detail", "Find a distinctive still visual", 70),
+                shot("Main action", "Capture the principal activity", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "event action", "Keep the main action centred and stable", 95)
             )
+            // Standard Guided Capture coverage sequence — product footage is VIDEO.
             else -> listOf(
-                shot("Establishing view", "Show the overall context", PlannedMediaType.PHOTO, PlannedFraming.WIDE, "scene", "Give the viewer location context", 80),
-                shot("Main subject", "Show the primary subject clearly", PlannedMediaType.PHOTO, PlannedFraming.MEDIUM, "main subject", "Keep the main subject prominent", 90),
-                shot("Detail", "Capture a useful close detail", PlannedMediaType.PHOTO, PlannedFraming.CLOSE, "distinctive detail", "Look for a visually informative detail", 70)
+                shot("Intro", "Open the sequence with context", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "scene intro", "Start with a stable establishing move", 100),
+                shot("Wide", "Establish the full environment", PlannedMediaType.VIDEO, PlannedFraming.WIDE, "environment", "Keep the full scene readable", 90),
+                shot("Medium", "Feature the primary subject", PlannedMediaType.VIDEO, PlannedFraming.MEDIUM, "main subject", "Keep the main subject prominent", 85),
+                shot("Close", "Capture a useful close detail", PlannedMediaType.VIDEO, PlannedFraming.CLOSE, "distinctive detail", "Move in for a clean close beat", 80)
             )
         }
 
