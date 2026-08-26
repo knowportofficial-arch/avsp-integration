@@ -8,15 +8,13 @@ import com.avsp.pro.capture.camera.model.CaptureOrientation
 import java.util.UUID
 
 /**
- * M6 — plain, non-AI guided-capture clip specification, exactly as defined by
- * the M6 spec: clip name, category, target duration, aspect ratio, orientation.
+ * Guided Capture clip specification.
  *
- * This is intentionally independent of [com.avsp.pro.capture.camera.mission.ShotMission],
- * which belongs to the pre-existing AI cinematographer subsystem (out of scope for M6).
+ * Semantic [clipName] + [category] (shot code) come from shot-plan / sample template data.
+ * [framingType] is technical WIDE/MEDIUM/CLOSE only — never a replacement for the semantic name.
  *
- * Framing zoom reuses existing [CameraShotType] ratios when the category maps to
- * WIDE / MEDIUM / CLOSE. Live subject/framing/stability ML validation is NOT part of
- * Guided Capture (see functional audit).
+ * Naming (preserved):
+ *   "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
  */
 enum class GuidedClipMediaType { PHOTO, VIDEO }
 
@@ -30,47 +28,44 @@ data class GuidedClipSpec(
     val resolution: CameraResolution = CameraResolution.FULL_HD_1080,
     val frameRate: CameraFrameRate = CameraFrameRate.FPS_30,
     val mediaType: GuidedClipMediaType = GuidedClipMediaType.VIDEO,
-    val timerSeconds: Int = 0 // 0 = no self-timer; e.g. 3 or 10
+    val timerSeconds: Int = 0,
+    /** Technical framing / zoom — WIDE / MEDIUM / CLOSE. */
+    val framingType: CameraShotType = CameraShotType.WIDE,
+    val subjectHint: String = "",
+    val guidanceHint: String = "",
+    val purpose: String = "",
+    val missionId: String? = null,
+    val missionShotId: String? = null,
+    val sceneId: String? = null,
+    val takeIndex: Int = 1
 ) {
     init {
         require(clipName.isNotBlank()) { "clipName must not be blank" }
         require(category.isNotBlank()) { "category must not be blank" }
         require(targetDurationSeconds > 0) { "targetDurationSeconds must be > 0" }
-        // M6.2 (FIX 2): aspectRatio and orientation must agree -- CameraX has no distinct
-        // "9:16" ratio class, portrait vs landscape comes entirely from orientation/rotation,
-        // so an inconsistent pair (e.g. LANDSCAPE_16_9 + PORTRAIT) would silently produce a
-        // result that doesn't match either field. Caught here instead of at capture time.
         require(aspectRatio.isPortrait == (orientation == CaptureOrientation.PORTRAIT)) {
             "aspectRatio ($aspectRatio) and orientation ($orientation) are inconsistent"
         }
     }
 
-    /**
-     * Maps template category labels onto the existing CameraX zoom shot-type contract.
-     * INTRO uses WIDE framing (establishing). Unknown categories default to WIDE.
-     * This mapping is technical framing only — it must never replace [clipName]/[category].
-     */
-    fun toCameraShotType(): CameraShotType = when (category.trim().uppercase()) {
-        "MEDIUM" -> CameraShotType.MEDIUM
-        "CLOSE", "CLOSEUP", "CLOSE_UP", "DETAIL" -> CameraShotType.CLOSE
-        else -> CameraShotType.WIDE // WIDE, INTRO, and unknown
-    }
+    fun toCameraShotType(): CameraShotType = framingType
 
     /**
-     * Preserved Guided Capture naming:
-     * "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
+     * Preserved Guided Capture naming using existing CameraShotType descriptions only.
      */
     fun captureInstruction(): String = GuidedCaptureShotNaming.format(
         semanticName = clipName,
         shotCode = category,
         durationSeconds = targetDurationSeconds,
-        framing = toCameraShotType()
+        framing = framingType
     )
+
+    /** Zoom ratio requested from the existing CameraShotType contract. */
+    fun requestedZoomRatio(): Float = framingType.defaultZoomRatio
 }
 
 /**
- * An ordered list of clips forming one guided-capture session, e.g. the M6 spec example:
- * Intro (5s) -> Wide (10s) -> Medium (8s) -> Close (5s)
+ * Ordered guided-capture session clips from either the sample template or a real shot plan.
  */
 data class GuidedCaptureTemplate(
     val templateId: String = "template_${UUID.randomUUID().toString().take(8)}",
@@ -82,7 +77,10 @@ data class GuidedCaptureTemplate(
     }
 
     companion object {
-        /** The exact example template given in the M6 spec, useful for standalone testing. */
+        /**
+         * M6 sample template — preserved semantic names/codes/durations/framing descriptions.
+         * Not a substitute for a real project shot plan when one can be generated.
+         */
         fun sample(): GuidedCaptureTemplate = GuidedCaptureTemplate(
             templateName = "Standard Product Sequence",
             clips = listOf(
@@ -91,28 +89,32 @@ data class GuidedCaptureTemplate(
                     category = "INTRO",
                     targetDurationSeconds = 5,
                     aspectRatio = CameraAspectRatio.PORTRAIT_9_16,
-                    orientation = CaptureOrientation.PORTRAIT
+                    orientation = CaptureOrientation.PORTRAIT,
+                    framingType = CameraShotType.WIDE
                 ),
                 GuidedClipSpec(
                     clipName = "Wide",
                     category = "WIDE",
                     targetDurationSeconds = 10,
                     aspectRatio = CameraAspectRatio.PORTRAIT_9_16,
-                    orientation = CaptureOrientation.PORTRAIT
+                    orientation = CaptureOrientation.PORTRAIT,
+                    framingType = CameraShotType.WIDE
                 ),
                 GuidedClipSpec(
                     clipName = "Medium",
                     category = "MEDIUM",
                     targetDurationSeconds = 8,
                     aspectRatio = CameraAspectRatio.PORTRAIT_9_16,
-                    orientation = CaptureOrientation.PORTRAIT
+                    orientation = CaptureOrientation.PORTRAIT,
+                    framingType = CameraShotType.MEDIUM
                 ),
                 GuidedClipSpec(
                     clipName = "Close",
                     category = "CLOSE",
                     targetDurationSeconds = 5,
                     aspectRatio = CameraAspectRatio.PORTRAIT_9_16,
-                    orientation = CaptureOrientation.PORTRAIT
+                    orientation = CaptureOrientation.PORTRAIT,
+                    framingType = CameraShotType.CLOSE
                 )
             )
         )

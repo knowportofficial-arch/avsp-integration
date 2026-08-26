@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import androidx.camera.core.ImageProxy
+import android.net.Uri
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -12,30 +12,42 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.avsp.pro.capture.camera.CameraController
+import com.avsp.pro.capture.camera.analyzer.FocusState
+import com.avsp.pro.capture.camera.analyzer.ShotReadinessStatus
+import com.avsp.pro.capture.camera.analyzer.StabilityState
+import com.avsp.pro.capture.camera.engine.DefaultCinematographerDecisionEngine
+import com.avsp.pro.capture.camera.mission.ShotMission
+import com.avsp.pro.capture.camera.mission.ShotStatus
+import com.avsp.pro.capture.camera.model.CameraCapabilities
+import com.avsp.pro.capture.camera.model.CameraControlMode
 import com.avsp.pro.capture.camera.model.CameraProfile
+import com.avsp.pro.capture.camera.understanding.DefaultSceneUnderstandingEngine
+import com.avsp.pro.capture.camera.understanding.DefaultSubjectUnderstandingEngine
+import com.avsp.pro.capture.camera.vision.DefaultVisualAnalyzer
+import com.avsp.pro.capture.camera.vision.MlKitVisionModel
 import com.avsp.pro.capture.camera.vision.VisualAnalysisResult
-import com.avsp.pro.capture.camera.vision.VisualAnalyzer
+import com.avsp.pro.dataset.analyzer.LocalQualityAnalyzer
+import com.avsp.pro.dataset.model.Recommendation
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * M6 — Guided Capture ViewModel.
+ * Guided Capture ViewModel.
  *
- * Independently runnable/testable: does not depend on the existing AI CameraViewModel,
- * ShotMission engine, or vision/planner subsystems. Consumes a plain [GuidedCaptureTemplate]
- * and produces MP4 + metadata.json + thumbnail.jpg per clip via [GuidedCaptureStorage].
- *
- * android:image-analysis is bound (CameraController.bindCamera requires a VisualAnalyzer) but
- * this ViewModel supplies a no-op analyzer -- no AI tagging or quality analysis is performed
- * here, per the M6 spec constraint. M7 is responsible for any downstream analysis.
+ * Loads a real AVSP shot plan (or sample fallback), drives CameraX capture, runs live
+ * ML Kit + cinematographer decision guidance (READY / NOT READY), and produces clip
+ * files for Media Library registration with mission/shot identity.
  */
 class GuidedCaptureViewModel(
     private val appContext: Context,
     private val cameraController: CameraController = CameraController(appContext),
-    private val storage: GuidedCaptureStorage = GuidedCaptureStorage(appContext)
+    private val storage: GuidedCaptureStorage = GuidedCaptureStorage(appContext),
+    private val qualityAnalyzer: LocalQualityAnalyzer = LocalQualityAnalyzer(appContext)
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GuidedCaptureState())
@@ -45,36 +57,58 @@ class GuidedCaptureViewModel(
     private var recordingProgressJob: kotlinx.coroutines.Job? = null
     private var recordingStartedAtMs: Long = 0L
 
-    /**
-     * M6.2 (FIX 3) — hardens the narrow lifecycle edge case where a self-timer's countdown
-     * completion callback could already be queued on the main thread at the moment the
-     * ViewModel is cleared (back navigation / activity destruction). Set as the very first
-     * statement in onCleared(), checked as the very first statement in
-     * startCaptureForCurrentClip() -- the only entry point a stale timer callback can reach.
-     * This does not change SelfTimer's design; it's a guard at the call site.
-     */
     @Volatile
     private var isCleared = false
 
-    private val noOpVisualAnalyzer = object : VisualAnalyzer {
-        override fun analyzeFrame(imageProxy: ImageProxy, tiltRollDegrees: Float): VisualAnalysisResult {
-            imageProxy.close()
-            return VisualAnalysisResult()
-        }
-        override fun close() {}
-    }
+    private val visualAnalyzer = DefaultVisualAnalyzer(MlKitVisionModel())
+    private val sceneEngine = DefaultSceneUnderstandingEngine()
+    private val subjectEngine = DefaultSubjectUnderstandingEngine()
+    private val decisionEngine = DefaultCinematographerDecisionEngine()
 
-    fun loadTemplate(template: GuidedCaptureTemplate) {
+    /** Parallel mission model for the cinematographer decision engine. */
+    private var activeMission: ShotMission? = null
+    private var userPlanContext: String? = null
+    private var lastCapabilities: CameraCapabilities = CameraCapabilities()
+
+    fun loadSession(
+        session: GuidedCapturePlanAdapter.GuidedSession,
+        planContext: String? = null
+    ) {
+        activeMission = session.mission
+        userPlanContext = planContext
         _state.update {
             GuidedCaptureState(
-                template = template,
+                template = session.template,
                 currentClipIndex = 0,
-                phase = GuidedCapturePhase.READY
+                phase = GuidedCapturePhase.READY,
+                planTitle = session.planTitle,
+                missionId = session.mission.id,
+                liveGuidance = GuidedLiveGuidance(
+                    requestedZoom = session.template.clips.firstOrNull()?.requestedZoomRatio() ?: 1.0f,
+                    message = session.template.clips.firstOrNull()?.guidanceHint
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "Point the camera toward the intended subject."
+                )
             )
         }
     }
 
-    /** Test #11 — permission denial path. Call after the caller's permission-request flow resolves. */
+    fun loadTemplate(template: GuidedCaptureTemplate) {
+        activeMission = null
+        _state.update {
+            GuidedCaptureState(
+                template = template,
+                currentClipIndex = 0,
+                phase = GuidedCapturePhase.READY,
+                planTitle = template.templateName,
+                missionId = template.templateId,
+                liveGuidance = GuidedLiveGuidance(
+                    requestedZoom = template.clips.firstOrNull()?.requestedZoomRatio() ?: 1.0f
+                )
+            )
+        }
+    }
+
     fun onPermissionResult(cameraGranted: Boolean, audioGranted: Boolean) {
         if (!cameraGranted) {
             _state.update {
@@ -85,13 +119,10 @@ class GuidedCaptureViewModel(
             }
             return
         }
-        // Audio denial is non-fatal: recording proceeds without sound (matches existing CameraController behavior).
         _state.update { it.copy(phase = GuidedCapturePhase.READY) }
     }
 
     suspend fun bindCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
-        // Never rebind while a Guided Capture recording is in flight — that detaches
-        // VideoCapture and finalizes with ERROR_SOURCE_INACTIVE (4).
         if (cameraController.isRecordingActive()) return
         if (!GuidedCaptureVideoPolicy.shouldBindCamera(_state.value.phase)) return
 
@@ -104,20 +135,112 @@ class GuidedCaptureViewModel(
             lensFacing = androidx.camera.core.CameraSelector.LENS_FACING_BACK,
             isGridOverlayEnabled = _state.value.isGridEnabled,
             preferredAspectRatio = clip.aspectRatio,
-            enforceRequestedFrameRate = true
+            enforceRequestedFrameRate = true,
+            controlMode = CameraControlMode.AUTO,
+            zoomRatio = clip.requestedZoomRatio()
         )
-        val result = cameraController.bindCamera(lifecycleOwner, previewView, profile, noOpVisualAnalyzer) {}
+        val result = cameraController.bindCamera(
+            lifecycleOwner,
+            previewView,
+            profile,
+            visualAnalyzer
+        ) { analysis ->
+            onVisualAnalysis(analysis)
+        }
         result.onFailure { e ->
             _state.update { it.copy(phase = GuidedCapturePhase.ERROR, errorMessage = e.message ?: "Failed to bind camera") }
             return
         }
-        // M6.1: request the clip's orientation be applied to capture output (see
-        // CameraController.applyOrientation KDoc for exactly what this can and can't guarantee).
         cameraController.applyOrientation(clip.orientation)
-        // Reuse existing CameraShotType zoom contract for WIDE/MEDIUM/CLOSE categories.
         cameraController.applyShotTypeZoom(shotType)
+        lastCapabilities = cameraController.getCapabilities(
+            androidx.camera.core.CameraSelector.LENS_FACING_BACK
+        )
         val range = cameraController.exposureCompensationRange() ?: 0..0
-        _state.update { it.copy(exposureIndex = 0, exposureRange = range) }
+        _state.update {
+            it.copy(
+                exposureIndex = 0,
+                exposureRange = range,
+                liveGuidance = it.liveGuidance.copy(requestedZoom = clip.requestedZoomRatio())
+            )
+        }
+    }
+
+    private fun onVisualAnalysis(analysis: VisualAnalysisResult) {
+        if (isCleared) return
+        val phase = _state.value.phase
+        if (phase != GuidedCapturePhase.READY && phase != GuidedCapturePhase.COUNTDOWN) return
+        val clip = _state.value.currentClip ?: return
+        val mission = syncedMissionForDecision()
+
+        val scene = sceneEngine.evaluateScene(
+            userContext = userPlanContext ?: clip.purpose.ifBlank { clip.clipName },
+            visualAnalysis = analysis
+        )
+        val subject = subjectEngine.evaluateSubject(
+            targetSubjectHint = clip.subjectHint.ifBlank { null },
+            activeEventText = null,
+            userContext = userPlanContext,
+            visualAnalysis = analysis
+        )
+        val profile = CameraProfile(
+            shotType = clip.toCameraShotType(),
+            resolution = clip.resolution,
+            frameRate = clip.frameRate,
+            zoomRatio = clip.requestedZoomRatio(),
+            preferredAspectRatio = clip.aspectRatio,
+            controlMode = CameraControlMode.AUTO
+        )
+        val decision = decisionEngine.evaluate(
+            userContext = userPlanContext ?: clip.purpose,
+            sceneUnderstanding = scene,
+            subjectUnderstanding = subject,
+            visualAnalysis = analysis,
+            activeMission = mission,
+            currentProfile = profile,
+            capabilities = lastCapabilities,
+            isAutoMode = true
+        )
+
+        val stable = analysis.stabilityState == StabilityState.STABLE
+        val guidanceMessage = when {
+            decision.guidance.isNotBlank() -> decision.guidance
+            !decision.isSubjectMatched ->
+                "Target not detected — move camera toward ${clip.subjectHint.ifBlank { "subject" }}."
+            !decision.isFramingAcceptable ->
+                "Subject detected — adjust framing (${clip.framingType.displayName})."
+            !stable -> "Hold still — camera is unstable."
+            analysis.focusState == FocusState.BLURRED -> "Hold still and let the camera focus."
+            else -> clip.guidanceHint.ifBlank { "Subject detected — framing acceptable." }
+        }
+        _state.update {
+            it.copy(
+                liveGuidance = GuidedLiveGuidance(
+                    isReady = decision.isReady,
+                    status = decision.status,
+                    headline = if (decision.isReady) "READY" else "NOT READY",
+                    message = guidanceMessage,
+                    isSubjectMatched = decision.isSubjectMatched,
+                    isFramingAcceptable = decision.isFramingAcceptable,
+                    isStable = stable,
+                    requestedZoom = clip.requestedZoomRatio(),
+                    readinessScore = decision.readinessScore
+                )
+            )
+        }
+    }
+
+    private fun syncedMissionForDecision(): ShotMission? {
+        val mission = activeMission ?: return null
+        val index = _state.value.currentClipIndex
+        val shots = mission.shots.mapIndexed { i, shot ->
+            when {
+                i < index -> shot.copy(status = ShotStatus.CAPTURED, isCompleted = true)
+                i == index -> shot.copy(status = ShotStatus.CURRENT)
+                else -> shot.copy(status = ShotStatus.PENDING)
+            }
+        }
+        return mission.copy(shots = shots, currentShotIndex = index)
     }
 
     fun toggleFlash() {
@@ -322,7 +445,11 @@ class GuidedCaptureViewModel(
                         latitude = location?.latitude,
                         longitude = location?.longitude,
                         device = storage.deviceLabel(),
-                        file = ready.videoFile.absolutePath
+                        file = ready.videoFile.absolutePath,
+                        missionId = clip.missionId ?: _state.value.missionId,
+                        missionShotId = clip.missionShotId ?: clip.clipId,
+                        sceneId = clip.sceneId,
+                        takeIndex = clip.takeIndex
                     )
                     val jsonOk = storage.writeMetadataJson(ready.jsonFile, metadata)
                     if (!jsonOk) {
@@ -335,11 +462,20 @@ class GuidedCaptureViewModel(
                         return@launch
                     }
 
+                    val quality = withContext(Dispatchers.IO) {
+                        qualityAnalyzer.analyze(
+                            uriString = Uri.fromFile(ready.videoFile).toString(),
+                            mediaType = "VIDEO",
+                            isDuplicate = false
+                        )
+                    }
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.REVIEW,
                             lastRecordedFile = ready.videoFile.absolutePath,
                             lastRecordedThumbnail = if (thumbOk) ready.thumbFile.absolutePath else null,
+                            lastRecommendation = quality.recommendation,
+                            lastQualityPercent = (quality.score * 100).toInt().coerceIn(0, 100),
                             completedClips = it.completedClips + metadata
                         )
                     }
@@ -403,18 +539,31 @@ class GuidedCaptureViewModel(
                         latitude = location?.latitude,
                         longitude = location?.longitude,
                         device = storage.deviceLabel(),
-                        file = file.absolutePath
+                        file = file.absolutePath,
+                        missionId = clip.missionId ?: _state.value.missionId,
+                        missionShotId = clip.missionShotId ?: clip.clipId,
+                        sceneId = clip.sceneId,
+                        takeIndex = clip.takeIndex
                     )
                     val jsonOk = storage.writeMetadataJson(ready.jsonFile, metadata)
                     if (!jsonOk) {
                         _state.update { it.copy(phase = GuidedCapturePhase.ERROR, errorMessage = "Failed to write clip metadata JSON.") }
                         return@launch
                     }
+                    val quality = withContext(Dispatchers.IO) {
+                        qualityAnalyzer.analyze(
+                            uriString = Uri.fromFile(file).toString(),
+                            mediaType = "PHOTO",
+                            isDuplicate = false
+                        )
+                    }
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.REVIEW,
                             lastRecordedFile = file.absolutePath,
                             lastRecordedThumbnail = file.absolutePath,
+                            lastRecommendation = quality.recommendation,
+                            lastQualityPercent = (quality.score * 100).toInt().coerceIn(0, 100),
                             completedClips = it.completedClips + metadata
                         )
                     }
@@ -432,13 +581,30 @@ class GuidedCaptureViewModel(
         if (lastMetadata != null) {
             try { File(lastMetadata.file).delete() } catch (_: Exception) {}
         }
+        val template = _state.value.template
+        val index = _state.value.currentClipIndex
+        val bumped = template?.let { tpl ->
+            val clips = tpl.clips.toMutableList()
+            val current = clips.getOrNull(index) ?: return@let tpl
+            clips[index] = current.copy(takeIndex = current.takeIndex + 1)
+            tpl.copy(clips = clips)
+        }
         _state.update {
             it.copy(
+                template = bumped ?: it.template,
                 phase = GuidedCapturePhase.READY,
                 elapsedMs = 0L,
                 lastRecordedFile = null,
                 lastRecordedThumbnail = null,
-                completedClips = it.completedClips.dropLast(1)
+                lastRecommendation = null,
+                lastQualityPercent = 0,
+                completedClips = it.completedClips.dropLast(1),
+                liveGuidance = GuidedLiveGuidance(
+                    requestedZoom = it.currentClip?.requestedZoomRatio() ?: 1.0f,
+                    message = it.currentClip?.guidanceHint
+                        ?.takeIf { hint -> hint.isNotBlank() }
+                        ?: "Point the camera toward the intended subject."
+                )
             )
         }
     }
@@ -447,15 +613,31 @@ class GuidedCaptureViewModel(
     fun acceptAndAdvance() {
         val state = _state.value
         if (state.isLastClip) {
-            _state.update { it.copy(phase = GuidedCapturePhase.COMPLETE) }
+            _state.update {
+                it.copy(
+                    phase = GuidedCapturePhase.COMPLETE,
+                    lastRecommendation = null,
+                    lastQualityPercent = 0
+                )
+            }
         } else {
+            val nextIndex = state.currentClipIndex + 1
+            val nextClip = state.template?.clips?.getOrNull(nextIndex)
             _state.update {
                 it.copy(
                     phase = GuidedCapturePhase.READY,
-                    currentClipIndex = it.currentClipIndex + 1,
+                    currentClipIndex = nextIndex,
                     elapsedMs = 0L,
                     lastRecordedFile = null,
-                    lastRecordedThumbnail = null
+                    lastRecordedThumbnail = null,
+                    lastRecommendation = null,
+                    lastQualityPercent = 0,
+                    liveGuidance = GuidedLiveGuidance(
+                        requestedZoom = nextClip?.requestedZoomRatio() ?: 1.0f,
+                        message = nextClip?.guidanceHint
+                            ?.takeIf { hint -> hint.isNotBlank() }
+                            ?: "Point the camera toward the intended subject."
+                    )
                 )
             }
         }
@@ -487,5 +669,6 @@ class GuidedCaptureViewModel(
         selfTimer.cancel()
         stopRecordingProgressTicker()
         cameraController.unbind()
+        runCatching { visualAnalyzer.close() }
     }
 }

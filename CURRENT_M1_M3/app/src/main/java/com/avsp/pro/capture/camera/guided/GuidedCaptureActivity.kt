@@ -5,46 +5,105 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.avsp.pro.AvspApplication
+import com.avsp.pro.capture.camera.planner.LocalShotPlanner
 import com.avsp.pro.capture.theme.AVSPTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
  * Guided capture secondary Activity (not a second launcher).
- * When [EXTRA_PROJECT_ID] is supplied, completed clips are registered into the Pro
- * project's capture media store with M7 quality analysis.
+ *
+ * When [EXTRA_PROJECT_ID] is supplied:
+ * 1. Loads the Pro project name/description
+ * 2. Builds a real [MasterShotPlan] via [LocalShotPlanner] (full shot sequence)
+ * 3. Adapts it into Guided Capture clips with preserved semantic naming
+ * 4. Registers completed clips into Media Library with mission/shot identity
+ *
+ * Falls back to [GuidedCaptureTemplate.sample] only when no project context is available.
  */
 class GuidedCaptureActivity : ComponentActivity() {
+
+    private var sessionState by mutableStateOf<SessionLoadState>(SessionLoadState.Loading)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val projectId = intent.getStringExtra(EXTRA_PROJECT_ID).orEmpty()
-        val template = GuidedCaptureTemplate.sample()
+        loadGuidedSession(projectId)
 
         setContent {
             AVSPTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    GuidedCaptureScreen(
-                        template = template,
-                        onFinished = { clips ->
-                            if (projectId.isNotBlank()) {
-                                registerClips(projectId, clips) {
-                                    finishWithResult(clips.size)
-                                }
-                            } else {
-                                finishWithResult(clips.size)
+                    when (val loaded = sessionState) {
+                        SessionLoadState.Loading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
                             }
-                        },
-                        onExit = { finish() }
-                    )
+                        }
+                        is SessionLoadState.Ready -> {
+                            GuidedCaptureScreen(
+                                session = loaded.session,
+                                planContext = loaded.planContext,
+                                onFinished = { clips ->
+                                    if (projectId.isNotBlank()) {
+                                        registerClips(projectId, clips) {
+                                            finishWithResult(clips.size)
+                                        }
+                                    } else {
+                                        finishWithResult(clips.size)
+                                    }
+                                },
+                                onExit = { finish() }
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    private fun loadGuidedSession(projectId: String) {
+        lifecycleScope.launch {
+            val loaded = withContext(Dispatchers.IO) {
+                if (projectId.isBlank()) {
+                    return@withContext SessionLoadState.Ready(
+                        session = GuidedCapturePlanAdapter.fromSampleFallback(),
+                        planContext = null
+                    )
+                }
+                val app = application as? AvspApplication
+                val project = runCatching {
+                    app?.container?.projectRepository?.openProject(projectId)
+                }.getOrNull()
+
+                val request = buildString {
+                    append(project?.name.orEmpty().ifBlank { "General coverage" })
+                    val desc = project?.description.orEmpty().trim()
+                    if (desc.isNotBlank()) {
+                        append(". ")
+                        append(desc)
+                    }
+                }
+                val plan = LocalShotPlanner().createPlan(request)
+                SessionLoadState.Ready(
+                    session = GuidedCapturePlanAdapter.fromMasterShotPlan(plan),
+                    planContext = request
+                )
+            }
+            sessionState = loaded
         }
     }
 
@@ -68,33 +127,29 @@ class GuidedCaptureActivity : ComponentActivity() {
         lifecycleScope.launch {
             clips.forEach { clip ->
                 val file = File(clip.file)
-                // Skip corrupt / unplayable outputs — do not create MediaEntity rows for them.
-                if (!file.exists() || !GuidedCaptureVideoValidator.isPlayable(file)) {
+                if (!file.exists()) return@forEach
+                val isPhoto = file.name.endsWith(".jpg", ignoreCase = true) ||
+                    file.name.endsWith(".jpeg", ignoreCase = true)
+                // Photos: existence + non-empty. Videos: playable MP4 gate.
+                if (!isPhoto && !GuidedCaptureVideoValidator.isPlayable(file)) {
+                    return@forEach
+                }
+                if (isPhoto && file.length() < 64L) {
                     return@forEach
                 }
                 val uri = GuidedCaptureUris.contentUriForFile(this@GuidedCaptureActivity, file).toString()
-                val mediaType = if (file.name.endsWith(".jpg", ignoreCase = true) ||
-                    file.name.endsWith(".jpeg", ignoreCase = true)
-                ) {
-                    "PHOTO"
-                } else {
-                    "VIDEO"
-                }
+                val mediaType = if (isPhoto) "PHOTO" else "VIDEO"
                 // Preserve semantic shot name + shot code. Framing (WIDE/MEDIUM/CLOSE) is
                 // technical only and must not replace clipName / category.
-                val framing = when (clip.category.trim().uppercase()) {
-                    "MEDIUM" -> "MEDIUM"
-                    "CLOSE", "CLOSEUP", "CLOSE_UP", "DETAIL" -> "CLOSE"
-                    "WIDE" -> "WIDE"
-                    else -> "WIDE" // INTRO and unknown use establishing framing
-                }
                 runCatching {
                     mediaRepository.saveCapturedMedia(
                         projectId = projectId,
                         uriString = uri,
                         mediaType = mediaType,
                         displayName = clip.clipName.ifBlank { clip.category },
-                        shotType = clip.category.ifBlank { framing },
+                        shotType = clip.category,
+                        missionId = clip.missionId,
+                        missionShotId = clip.missionShotId,
                         durationSeconds = (clip.durationMs / 1000L).coerceAtLeast(0L),
                         latitude = clip.latitude,
                         longitude = clip.longitude,
@@ -104,6 +159,14 @@ class GuidedCaptureActivity : ComponentActivity() {
             }
             onDone()
         }
+    }
+
+    private sealed class SessionLoadState {
+        data object Loading : SessionLoadState()
+        data class Ready(
+            val session: GuidedCapturePlanAdapter.GuidedSession,
+            val planContext: String?
+        ) : SessionLoadState()
     }
 
     companion object {

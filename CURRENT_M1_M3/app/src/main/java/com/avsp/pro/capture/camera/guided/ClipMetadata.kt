@@ -49,7 +49,13 @@ data class ClipMetadata(
     val latitude: Double?,
     val longitude: Double?,
     val device: String,
-    val file: String
+    val file: String,
+    /** Parallel mission identity when Guided Capture is driven by a shot plan. */
+    val missionId: String? = null,
+    val missionShotId: String? = null,
+    /** Not present on MasterShotPlan today — kept null rather than invented. */
+    val sceneId: String? = null,
+    val takeIndex: Int = 1
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("clip_id", clipId)
@@ -76,6 +82,10 @@ data class ClipMetadata(
         put("longitude", longitude ?: JSONObject.NULL)
         put("device", device)
         put("file", file)
+        put("mission_id", missionId ?: JSONObject.NULL)
+        put("mission_shot_id", missionShotId ?: JSONObject.NULL)
+        put("scene_id", sceneId ?: JSONObject.NULL)
+        put("take_index", takeIndex)
     }
 
     companion object {
@@ -107,7 +117,11 @@ data class ClipMetadata(
             latitude = if (json.isNull("latitude")) null else json.getDouble("latitude"),
             longitude = if (json.isNull("longitude")) null else json.getDouble("longitude"),
             device = json.getString("device"),
-            file = json.getString("file")
+            file = json.getString("file"),
+            missionId = json.optString("mission_id").ifBlank { null },
+            missionShotId = json.optString("mission_shot_id").ifBlank { null },
+            sceneId = json.optString("scene_id").ifBlank { null },
+            takeIndex = json.optInt("take_index", 1)
         )
     }
 }
