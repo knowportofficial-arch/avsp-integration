@@ -95,9 +95,13 @@ fun GuidedCaptureScreen(
     }
 
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
-    LaunchedEffect(state.currentClipIndex, previewViewRef, state.phase == GuidedCapturePhase.READY) {
-        val pv = previewViewRef
-        if (pv != null && state.phase != GuidedCapturePhase.PERMISSION_REQUIRED && state.phase != GuidedCapturePhase.ERROR) {
+    // CRITICAL: do NOT rebind when leaving READY → RECORDING/COUNTDOWN.
+    // The previous key used `phase == READY` (Boolean). Leaving READY flipped that key,
+    // restarted this effect, and called bindCamera() → ProcessCameraProvider.unbindAll()
+    // while VideoCapture was recording — CameraX Finalize ERROR_SOURCE_INACTIVE (4).
+    LaunchedEffect(state.currentClipIndex, previewViewRef, state.phase) {
+        val pv = previewViewRef ?: return@LaunchedEffect
+        if (GuidedCaptureVideoPolicy.shouldBindCamera(state.phase)) {
             viewModel.bindCamera(lifecycleOwner, pv)
         }
     }

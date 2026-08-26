@@ -91,6 +91,11 @@ class GuidedCaptureViewModel(
     }
 
     suspend fun bindCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
+        // Never rebind while a Guided Capture recording is in flight — that detaches
+        // VideoCapture and finalizes with ERROR_SOURCE_INACTIVE (4).
+        if (cameraController.isRecordingActive()) return
+        if (!GuidedCaptureVideoPolicy.shouldBindCamera(_state.value.phase)) return
+
         val clip = _state.value.currentClip ?: return
         val profile = CameraProfile(
             shotType = CameraShotType.WIDE,
@@ -214,7 +219,13 @@ class GuidedCaptureViewModel(
             is VideoRecordEvent.Finalize -> {
                 stopRecordingProgressTicker()
                 if (event.hasError()) {
-                    // Test #13 — interrupted recording path.
+                    // ERROR_SOURCE_INACTIVE (4): CameraX may still have written frames before
+                    // detach. Recover when the output file looks usable; otherwise fail cleanly.
+                    if (GuidedCaptureVideoPolicy.isRecoverableFinalizeError(event.error, ready.videoFile)) {
+                        finalizeVideoClip(clip, ready)
+                        return
+                    }
+                    GuidedCaptureVideoPolicy.cleanupPartialVideo(ready.videoFile)
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.ERROR,

@@ -72,6 +72,8 @@ class CameraController(private val context: Context) {
     private var videoCapture: VideoCapture<Recorder>? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var activeRecording: Recording? = null
+    /** When true, Finalize should complete an deferred unbindAll. */
+    private var pendingUnbindAfterRecording: Boolean = false
 
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
@@ -124,6 +126,12 @@ class CameraController(private val context: Context) {
         visualAnalyzer: VisualAnalyzer,
         onVisualAnalysis: (VisualAnalysisResult) -> Unit
     ): Result<Camera> {
+        // Rebinding while Recording is active detaches VideoCapture and finalizes with
+        // VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE (4). Keep the existing session.
+        if (activeRecording != null) {
+            return activeCamera?.let { Result.success(it) }
+                ?: Result.failure(IllegalStateException("Recording is active but camera is unbound"))
+        }
         return try {
             val provider = getCameraProvider()
             val cameraSelector = CameraSelector.Builder().requireLensFacing(profile.lensFacing).build()
@@ -481,27 +489,52 @@ class CameraController(private val context: Context) {
 
         try {
             activeRecording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { event ->
+                if (event is VideoRecordEvent.Finalize) {
+                    onRecordingFinalized()
+                }
                 onEvent(event)
             }
         } catch (e: Exception) {
+            onRecordingFinalized()
             onError(e)
         }
     }
 
     fun stopRecording() {
         try {
+            // Do NOT null activeRecording here. stop() is async; clearing early would allow
+            // bindCamera() → unbindAll() before Finalize and trigger ERROR_SOURCE_INACTIVE.
             activeRecording?.stop()
         } catch (_: Exception) {}
-        activeRecording = null
     }
+
+    /** True from prepare/start until Finalize (or failed start). */
+    fun isRecordingActive(): Boolean = activeRecording != null
 
     fun unbind() {
         try {
-            activeRecording?.stop()
-            activeRecording = null
+            if (activeRecording != null) {
+                // Stop first; unbindAll after Finalize so we don't force ERROR_SOURCE_INACTIVE
+                // (and still release the camera once the recording ends).
+                pendingUnbindAfterRecording = true
+                activeRecording?.stop()
+                return
+            }
+            pendingUnbindAfterRecording = false
             cameraProvider?.unbindAll()
             activeCamera = null
         } catch (_: Exception) {}
+    }
+
+    private fun onRecordingFinalized() {
+        activeRecording = null
+        if (pendingUnbindAfterRecording) {
+            pendingUnbindAfterRecording = false
+            try {
+                cameraProvider?.unbindAll()
+                activeCamera = null
+            } catch (_: Exception) {}
+        }
     }
 
     // ------------------------------------------------------------------
@@ -701,9 +734,13 @@ class CameraController(private val context: Context) {
 
         try {
             activeRecording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { event ->
+                if (event is VideoRecordEvent.Finalize) {
+                    onRecordingFinalized()
+                }
                 onEvent(event)
             }
         } catch (e: Exception) {
+            onRecordingFinalized()
             onError(e)
         }
     }
