@@ -19,6 +19,14 @@ sealed class AvspDestination(val route: String, val label: String) {
         fun createRoute(projectId: String) = "audio/$projectId"
     }
 
+    data object Camera : AvspDestination("camera/{projectId}", "Camera") {
+        fun createRoute(projectId: String) = "camera/$projectId"
+    }
+
+    data object MediaLibrary : AvspDestination("media_library/{projectId}", "Media Library") {
+        fun createRoute(projectId: String) = "media_library/$projectId"
+    }
+
     companion object {
         val bottomBar = listOf(Home, Projects, Media, Modules, Settings, Logs)
     }

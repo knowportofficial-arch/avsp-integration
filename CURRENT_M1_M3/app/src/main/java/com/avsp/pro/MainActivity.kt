@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.avsp.pro.capture.theme.AppPreferences
 import com.avsp.pro.ui.navigation.AvspNavHost
 import com.avsp.pro.ui.theme.AvspTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppPreferences.initialize(this)
         enableEdgeToEdge()
         val app = application as AvspApplication
         setContent {

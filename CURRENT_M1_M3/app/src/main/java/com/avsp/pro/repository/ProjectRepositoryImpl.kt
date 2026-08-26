@@ -21,7 +21,8 @@ class ProjectRepositoryImpl(
     private val projectDao: ProjectDao,
     private val mediaAssetDao: MediaAssetDao,
     private val storage: AvspStorage,
-    private val logger: AvspLogger
+    private val logger: AvspLogger,
+    private val onProjectDeleted: (suspend (String) -> Unit)? = null
 ) : ProjectRepository {
 
     override suspend fun createProject(
@@ -103,6 +104,7 @@ class ProjectRepositoryImpl(
         }
         try {
             mediaAssetDao.deleteForProject(projectId)
+            onProjectDeleted?.invoke(projectId)
             projectDao.delete(projectId)
             logger.info("M1", "Project deleted", projectId = projectId)
         } catch (e: Exception) {
