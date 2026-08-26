@@ -44,6 +44,9 @@ class ScriptAiViewModel(
     private val _aiConfig = MutableStateFlow(ConfigState.NOT_CONFIGURED)
     val aiConfig: StateFlow<ConfigState> = _aiConfig.asStateFlow()
 
+    private val _activeGenerator = MutableStateFlow("Mock Script Generator (mock/MOCK)")
+    val activeGenerator: StateFlow<String> = _activeGenerator.asStateFlow()
+
     private val _savedMessage = MutableStateFlow<String?>(null)
     val savedMessage: StateFlow<String?> = _savedMessage.asStateFlow()
 
@@ -57,6 +60,7 @@ class ScriptAiViewModel(
             } else {
                 ConfigState.NOT_CONFIGURED
             }
+            _activeGenerator.value = scriptRepository.activeGeneratorLabel()
             val settings = runCatching { settingsRepository.getSettings() }.getOrNull()
             if (settings != null) {
                 _form.value = _form.value.copy(languageCode = settings.defaultLanguage.code)
@@ -120,6 +124,7 @@ class ScriptAiViewModel(
                     userInstructions = f.instructions.ifBlank { null }
                 )
                 val script = scriptRepository.generate(request)
+                _activeGenerator.value = scriptRepository.activeGeneratorLabel()
                 if (!script.validation.isValid) {
                     _scriptState.value = UiState.Error(
                         message = script.validation.errors.joinToString("\n"),
@@ -128,7 +133,8 @@ class ScriptAiViewModel(
                     )
                 } else {
                     _scriptState.value = UiState.Success(script)
-                    _savedMessage.value = "Script generated and saved"
+                    _savedMessage.value =
+                        "Script generated via ${script.metadata.generatorId}/${script.metadata.generatorMode} and saved"
                 }
             } catch (e: Exception) {
                 val msg = (e as? AvspException)?.errorInfo?.message ?: e.message ?: "Generation failed"

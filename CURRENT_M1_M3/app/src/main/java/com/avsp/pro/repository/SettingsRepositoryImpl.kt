@@ -78,4 +78,14 @@ class SettingsRepositoryImpl(
         // Credential states are derived from SecureConfigStore on each getSettings().
         // No plaintext secrets are persisted in the settings table.
     }
+
+    override suspend fun setAiApiCredential(secret: String) {
+        val trimmed = secret.trim()
+        require(trimmed.isNotBlank()) { "AI API credential must not be blank" }
+        secureConfigStore.putSecret(SecureConfigKeys.AI_API, trimmed)
+    }
+
+    override suspend fun clearAiApiCredential() {
+        secureConfigStore.clearSecret(SecureConfigKeys.AI_API)
+    }
 }

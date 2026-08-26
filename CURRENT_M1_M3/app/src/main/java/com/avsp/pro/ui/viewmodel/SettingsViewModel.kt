@@ -65,6 +65,35 @@ class SettingsViewModel(
     fun updateLogLevel(level: LogLevel) = mutate { it.copy(loggingLevel = level) }
     fun updateOutputRef(ref: String) = mutate { it.copy(defaultOutputDirectoryRef = ref) }
 
+    fun saveAiApiCredential(secret: String) {
+        viewModelScope.launch {
+            try {
+                settingsRepository.setAiApiCredential(secret)
+                logger.info("M1", "AI API credential configured")
+                _saved.value = true
+                _state.value = UiState.Success(settingsRepository.getSettings())
+            } catch (e: Exception) {
+                val msg = (e as? AvspException)?.errorInfo?.message ?: e.message ?: "Failed to save AI credential"
+                logger.error("M1", "AI credential save failed", details = msg)
+                _state.value = UiState.Error(msg)
+            }
+        }
+    }
+
+    fun clearAiApiCredential() {
+        viewModelScope.launch {
+            try {
+                settingsRepository.clearAiApiCredential()
+                logger.info("M1", "AI API credential cleared")
+                _saved.value = true
+                _state.value = UiState.Success(settingsRepository.getSettings())
+            } catch (e: Exception) {
+                val msg = (e as? AvspException)?.errorInfo?.message ?: e.message ?: "Failed to clear AI credential"
+                _state.value = UiState.Error(msg)
+            }
+        }
+    }
+
     fun clearSavedFlag() {
         _saved.value = false
     }

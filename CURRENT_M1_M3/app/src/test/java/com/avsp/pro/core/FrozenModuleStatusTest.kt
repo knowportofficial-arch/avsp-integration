@@ -16,7 +16,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * FROZEN module status representation tests (M4–M9).
+ * FROZEN module status representation tests (M4/M5/M8/M9 remain frozen; M6/M7 live).
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -45,7 +45,9 @@ class FrozenModuleStatusTest {
         assertThat(repo.get(AvspModules.M1_CORE_UI)!!.status).isEqualTo(ModuleRunStatus.FROZEN)
         assertThat(repo.get(AvspModules.M2_SCRIPT_AI)!!.status).isEqualTo(ModuleRunStatus.FROZEN)
         assertThat(repo.get(AvspModules.M3_AUDIO_TTS)!!.status).isEqualTo(ModuleRunStatus.READY)
-        listOf("M4", "M5", "M6", "M7", "M8", "M9").forEach { id ->
+        assertThat(repo.get(AvspModules.M6_CAMERA)!!.status).isEqualTo(ModuleRunStatus.READY)
+        assertThat(repo.get(AvspModules.M7_DATASET_VISION)!!.status).isEqualTo(ModuleRunStatus.READY)
+        listOf("M4", "M5", "M8", "M9").forEach { id ->
             assertThat(repo.get(id)!!.status).isEqualTo(ModuleRunStatus.FROZEN)
         }
     }
@@ -58,7 +60,7 @@ class FrozenModuleStatusTest {
     }
 
     @Test
-    fun registerOrUpdate_cannotUnfreezeM4toM9() = runBlocking {
+    fun registerOrUpdate_cannotUnfreezeM4M5M8M9() = runBlocking {
         repo.ensureDefaults()
         repo.registerOrUpdate(
             com.avsp.pro.core.module.ModuleStatus(

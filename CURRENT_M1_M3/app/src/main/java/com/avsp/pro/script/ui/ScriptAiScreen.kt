@@ -48,6 +48,7 @@ fun ScriptAiScreen(
     val form by viewModel.form.collectAsState()
     val scriptState by viewModel.scriptState.collectAsState()
     val aiConfig by viewModel.aiConfig.collectAsState()
+    val activeGenerator by viewModel.activeGenerator.collectAsState()
     val savedMessage by viewModel.savedMessage.collectAsState()
 
     LaunchedEffect(projectId) {
@@ -85,9 +86,18 @@ fun ScriptAiScreen(
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
             }
         )
+        Text(
+            "Active generator: $activeGenerator",
+            style = MaterialTheme.typography.bodyMedium
+        )
         if (aiConfig == ConfigState.NOT_CONFIGURED) {
             Text(
-                "Using Mock Script Generator (deterministic). Remote providers require CONFIGURED credentials.",
+                "Using Mock Script Generator. Configure Gemini API key in Settings to enable real Gemini.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else {
+            Text(
+                "Gemini will be used for Generate. Failures are shown as errors (not silently replaced by Mock).",
                 style = MaterialTheme.typography.bodyMedium
             )
         }

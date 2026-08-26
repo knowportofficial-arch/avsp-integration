@@ -39,7 +39,10 @@ fun ProjectDetailScreen(
     viewModel: ProjectDetailViewModel,
     onBack: () -> Unit,
     onOpenScriptAi: () -> Unit = {},
-    onOpenAudioTts: () -> Unit = {}
+    onOpenAudioTts: () -> Unit = {},
+    onOpenCamera: () -> Unit = {},
+    onOpenMediaLibrary: () -> Unit = {},
+    onOpenGuidedCapture: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     var showRename by remember { mutableStateOf(false) }
@@ -99,12 +102,24 @@ fun ProjectDetailScreen(
                     onClick = onOpenAudioTts,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Audio / TTS") }
+                Button(
+                    onClick = onOpenCamera,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Camera") }
+                Button(
+                    onClick = onOpenGuidedCapture,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Guided Capture") }
+                Button(
+                    onClick = onOpenMediaLibrary,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Media Library / Quality") }
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Available assets", style = MaterialTheme.typography.titleLarge)
                 if (dash.assets.isEmpty()) {
                     Text(
-                        "No media assets yet. Camera (M6) and generators will attach files here.",
+                        "No media assets yet. Use Camera or Guided Capture to add clips.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -118,7 +133,8 @@ fun ProjectDetailScreen(
                 Text("Module status", style = MaterialTheme.typography.titleLarge)
                     dash.modules.forEach { mod ->
                     val highlight = when (mod.moduleId) {
-                        AvspModules.M2_SCRIPT_AI, AvspModules.M3_AUDIO_TTS -> true
+                        AvspModules.M2_SCRIPT_AI, AvspModules.M3_AUDIO_TTS,
+                        AvspModules.M6_CAMERA, AvspModules.M7_DATASET_VISION -> true
                         in AvspModules.FROZEN_MODULE_IDS -> true
                         else -> false
                     }
@@ -129,7 +145,7 @@ fun ProjectDetailScreen(
                     )
                 }
                 Text(
-                    "M1/M2 = FROZEN. M3 Audio/TTS = READY. M4–M9 = FROZEN.",
+                    "M1/M2 = FROZEN. M3/M6/M7 = READY. M4/M5/M8/M9 = FROZEN.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                 )
