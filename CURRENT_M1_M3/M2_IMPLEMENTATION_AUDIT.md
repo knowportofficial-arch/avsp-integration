@@ -120,3 +120,11 @@ M3 `AudioRepository` loads script via `scriptRepository.load(projectId)`.
 | M6/M7 untouched | IMPLEMENTED (baseline freeze) |
 
 **Verdict before implementation:** M2 foundation is real; **M2 Real Gemini is NOT complete** (MOCK-ONLY production path).
+
+---
+
+## Post-implementation update (same day)
+
+Code on `cursor/avsp-m2-real-gemini-integration-ddb1` adds real Gemini under `script/generator/gemini/`, registry preference when AI is CONFIGURED, Settings key entry, and `M2GeminiScriptIntegrationTest`. See `M2_REAL_GEMINI_IMPLEMENTATION_REPORT.md`.
+
+**Live device Gemini still NOT VERIFIED → do not mark M2 COMPLETE.**
