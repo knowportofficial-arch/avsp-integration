@@ -42,6 +42,10 @@ credentials.json
 *.wav
 *.mp3
 
+# Allow committed M8 punch fixture clips (required by existing M8 tests)
+!M8/m8/assets/punch_library/clips/
+!M8/m8/assets/punch_library/clips/*.mp4
+
 # OS/editor
 Thumbs.db
 .DS_Store
@@ -49,3 +53,6 @@ Thumbs.db
 
 # Distribution archives
 *.zip
+
+# Guided Capture unit-test fixtures (tiny MP4s)
+!CURRENT_M1_M3/app/src/test/resources/guided/*.mp4
