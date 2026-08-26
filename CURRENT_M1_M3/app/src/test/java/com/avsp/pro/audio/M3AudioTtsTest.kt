@@ -259,11 +259,15 @@ class M3AudioTtsTest {
         assertThat(moduleStatusRepository.get(AvspModules.M3_AUDIO_TTS)!!.status)
             .isEqualTo(ModuleRunStatus.READY)
         AvspModules.FROZEN_MODULE_IDS.filter { it.startsWith("M") && it != "M1" && it != "M2" }.forEach { id ->
-            // M4-M9 still frozen
-            if (id in listOf("M4", "M5", "M6", "M7", "M8", "M9")) {
+            // M4/M5/M8/M9 still frozen (M6/M7 are live after Pro integration)
+            if (id in listOf("M4", "M5", "M8", "M9")) {
                 assertThat(moduleStatusRepository.get(id)!!.status).isEqualTo(ModuleRunStatus.FROZEN)
             }
         }
+        assertThat(moduleStatusRepository.get(AvspModules.M6_CAMERA)!!.status)
+            .isEqualTo(ModuleRunStatus.READY)
+        assertThat(moduleStatusRepository.get(AvspModules.M7_DATASET_VISION)!!.status)
+            .isEqualTo(ModuleRunStatus.READY)
     }
 
     @Test

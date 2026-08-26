@@ -48,14 +48,12 @@ object AvspModules {
     const val M8_AUTOMATION = "M8"
     const val M9_PUBLISHING = "M9"
 
-    /** Accepted/frozen modules (status protection). M3 is live when READY. */
+    /** Accepted/frozen modules (status protection). M3/M6/M7 are live when READY. */
     val FROZEN_MODULE_IDS: Set<String> = setOf(
         M1_CORE_UI,
         M2_SCRIPT_AI,
         M4_VIDEO_ENGINE,
         M5_YOUTUBE_SCREEN,
-        M6_CAMERA,
-        M7_DATASET_VISION,
         M8_AUTOMATION,
         M9_PUBLISHING
     )
@@ -73,8 +71,8 @@ object AvspModules {
         Definition(M3_AUDIO_TTS, "M3 Audio/TTS", "1.0.0", ModuleRunStatus.READY),
         Definition(M4_VIDEO_ENGINE, "M4 Video Engine", "0.0.0", ModuleRunStatus.FROZEN),
         Definition(M5_YOUTUBE_SCREEN, "M5 YouTube/Screen", "0.0.0", ModuleRunStatus.FROZEN),
-        Definition(M6_CAMERA, "M6 Camera", "0.0.0", ModuleRunStatus.FROZEN),
-        Definition(M7_DATASET_VISION, "M7 Dataset/Vision", "0.0.0", ModuleRunStatus.FROZEN),
+        Definition(M6_CAMERA, "M6 Camera", "1.0.0-m7", ModuleRunStatus.READY),
+        Definition(M7_DATASET_VISION, "M7 Dataset/Vision", "1.0.0-m7", ModuleRunStatus.READY),
         Definition(M8_AUTOMATION, "M8 Automation", "0.0.0", ModuleRunStatus.FROZEN),
         Definition(M9_PUBLISHING, "M9 Publishing/Web", "0.0.0", ModuleRunStatus.FROZEN)
     )

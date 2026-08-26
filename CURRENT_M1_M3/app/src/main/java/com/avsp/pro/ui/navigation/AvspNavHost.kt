@@ -1,5 +1,8 @@
 package com.avsp.pro.ui.navigation
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
@@ -17,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -25,7 +29,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.avsp.pro.audio.ui.AudioTtsScreen
+import com.avsp.pro.audio.ui.AudioTtsViewModel
+import com.avsp.pro.capture.camera.CameraPreviewScreen
+import com.avsp.pro.capture.camera.CameraViewModel
+import com.avsp.pro.capture.camera.CameraViewModelFactory
+import com.avsp.pro.capture.camera.guided.GuidedCaptureActivity
 import com.avsp.pro.di.AppContainer
+import com.avsp.pro.media.MediaLibraryScreen
+import com.avsp.pro.script.ui.ScriptAiScreen
+import com.avsp.pro.script.ui.ScriptAiViewModel
 import com.avsp.pro.ui.screens.home.HomeScreen
 import com.avsp.pro.ui.screens.logs.LogsScreen
 import com.avsp.pro.ui.screens.media.MediaScreen
@@ -33,10 +46,6 @@ import com.avsp.pro.ui.screens.modules.ModulesScreen
 import com.avsp.pro.ui.screens.projects.ProjectDetailScreen
 import com.avsp.pro.ui.screens.projects.ProjectsScreen
 import com.avsp.pro.ui.screens.settings.SettingsScreen
-import com.avsp.pro.script.ui.ScriptAiScreen
-import com.avsp.pro.script.ui.ScriptAiViewModel
-import com.avsp.pro.audio.ui.AudioTtsScreen
-import com.avsp.pro.audio.ui.AudioTtsViewModel
 import com.avsp.pro.ui.viewmodel.HomeViewModel
 import com.avsp.pro.ui.viewmodel.LogsViewModel
 import com.avsp.pro.ui.viewmodel.MediaViewModel
@@ -52,26 +61,33 @@ fun AvspNavHost(container: AppContainer) {
     val factory = ViewModelFactory(container)
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+    val context = LocalContext.current
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                AvspDestination.bottomBar.forEach { dest ->
-                    NavigationBarItem(
-                        selected = currentRoute == dest.route ||
-                            (dest == AvspDestination.Projects && currentRoute?.startsWith("project/") == true),
-                        onClick = {
-                            navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            val hideBottomBar = currentRoute?.startsWith("camera/") == true ||
+                currentRoute?.startsWith("media_library/") == true ||
+                currentRoute?.startsWith("script/") == true ||
+                currentRoute?.startsWith("audio/") == true
+            if (!hideBottomBar) {
+                NavigationBar {
+                    AvspDestination.bottomBar.forEach { dest ->
+                        NavigationBarItem(
+                            selected = currentRoute == dest.route ||
+                                (dest == AvspDestination.Projects && currentRoute?.startsWith("project/") == true),
+                            onClick = {
+                                navController.navigate(dest.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(iconFor(dest), contentDescription = dest.label) },
-                        label = { Text(dest.label) }
-                    )
+                            },
+                            icon = { Icon(iconFor(dest), contentDescription = dest.label) },
+                            label = { Text(dest.label) }
+                        )
+                    }
                 }
             }
         }
@@ -105,6 +121,13 @@ fun AvspNavHost(container: AppContainer) {
             ) { entry ->
                 val projectId = entry.arguments?.getString("projectId") ?: return@composable
                 val vm: ProjectDetailViewModel = viewModel(factory = factory)
+                val guidedLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        vm.load(projectId)
+                    }
+                }
                 ProjectDetailScreen(
                     projectId = projectId,
                     viewModel = vm,
@@ -114,6 +137,17 @@ fun AvspNavHost(container: AppContainer) {
                     },
                     onOpenAudioTts = {
                         navController.navigate(AvspDestination.AudioTts.createRoute(projectId))
+                    },
+                    onOpenCamera = {
+                        navController.navigate(AvspDestination.Camera.createRoute(projectId))
+                    },
+                    onOpenMediaLibrary = {
+                        navController.navigate(AvspDestination.MediaLibrary.createRoute(projectId))
+                    },
+                    onOpenGuidedCapture = {
+                        guidedLauncher.launch(
+                            GuidedCaptureActivity.launchIntent(context, projectId)
+                        )
                     }
                 )
             }
@@ -144,6 +178,33 @@ fun AvspNavHost(container: AppContainer) {
                     onBack = { navController.popBackStack() }
                 )
             }
+            composable(
+                route = AvspDestination.Camera.route,
+                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+            ) { entry ->
+                val projectId = entry.arguments?.getString("projectId") ?: return@composable
+                val cameraFactory = CameraViewModelFactory(
+                    container.mediaRepository,
+                    container.captureProjectRepository
+                )
+                val cameraVm: CameraViewModel = viewModel(factory = cameraFactory)
+                CameraPreviewScreen(
+                    projectId = projectId,
+                    viewModel = cameraVm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = AvspDestination.MediaLibrary.route,
+                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+            ) { entry ->
+                val projectId = entry.arguments?.getString("projectId") ?: return@composable
+                MediaLibraryScreen(
+                    projectId = projectId,
+                    mediaRepository = container.mediaRepository,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(AvspDestination.Media.route) {
                 val vm: MediaViewModel = viewModel(factory = factory)
                 MediaScreen(viewModel = vm)
@@ -171,5 +232,9 @@ private fun iconFor(dest: AvspDestination): ImageVector = when (dest) {
     AvspDestination.Modules -> Icons.Filled.List
     AvspDestination.Settings -> Icons.Filled.Settings
     AvspDestination.Logs -> Icons.Filled.Info
-    AvspDestination.ProjectDetail, AvspDestination.ScriptAi, AvspDestination.AudioTts -> Icons.Filled.Folder
+    AvspDestination.ProjectDetail,
+    AvspDestination.ScriptAi,
+    AvspDestination.AudioTts,
+    AvspDestination.Camera,
+    AvspDestination.MediaLibrary -> Icons.Filled.Folder
 }
