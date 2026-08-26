@@ -14,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.avsp.pro.core.model.AspectRatio
 import com.avsp.pro.core.model.ProjectLanguage
@@ -41,6 +43,7 @@ import kotlinx.coroutines.delay
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val state by viewModel.state.collectAsState()
     val saved by viewModel.saved.collectAsState()
+    var aiKeyDraft by remember { mutableStateOf("") }
 
     LaunchedEffect(saved) {
         if (saved) {
@@ -58,7 +61,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Core preferences for AVSP. Secrets are never shown here — only CONFIGURED / NOT CONFIGURED.",
+            "Core preferences for AVSP. Stored secrets are never displayed after save — only CONFIGURED / NOT CONFIGURED.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -109,6 +112,38 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 Text("Connections", style = MaterialTheme.typography.titleLarge)
                 ConfigStateRow("AI configuration", settings.aiConfigState)
                 ConfigStateRow("Publishing configuration", settings.publishingConfigState)
+
+                OutlinedTextField(
+                    value = aiKeyDraft,
+                    onValueChange = { aiKeyDraft = it },
+                    label = { Text("Gemini API key (dev)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    supportingText = {
+                        Text("Stored in encrypted SecureConfigStore. Never committed to Git.")
+                    }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.saveAiApiCredential(aiKeyDraft)
+                            aiKeyDraft = ""
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = aiKeyDraft.isNotBlank()
+                    ) { Text("Save AI key") }
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.clearAiApiCredential()
+                            aiKeyDraft = ""
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Clear AI key") }
+                }
 
                 Button(
                     onClick = { viewModel.save(settings) },

@@ -257,10 +257,14 @@ class M2ScriptAiTest {
     @Test
     fun providerAbstractionResolvesMockWhenNotConfigured() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val registry = DefaultScriptGeneratorRegistry(EncryptedSecureConfigStore(context))
+        val secure = EncryptedSecureConfigStore(context)
+        secure.clearSecret(com.avsp.pro.settings.SecureConfigKeys.AI_API)
+        val registry = DefaultScriptGeneratorRegistry(secure)
         assertThat(registry.isRemoteConfigured()).isFalse()
         assertThat(registry.resolve().providerId).isEqualTo(MockScriptGenerator.PROVIDER_ID)
         assertThat(registry.available()).isNotEmpty()
+        assertThat(registry.available().map { it.providerId })
+            .doesNotContain(com.avsp.pro.script.generator.gemini.GeminiScriptGenerator.PROVIDER_ID)
     }
 
     @Test
