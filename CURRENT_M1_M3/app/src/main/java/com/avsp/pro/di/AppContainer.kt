@@ -2,6 +2,8 @@ package com.avsp.pro.di
 
 import android.content.Context
 import com.avsp.pro.audio.engine.DefaultTtsEngineRegistry
+import com.avsp.pro.audio.engine.LocalFileVoiceCloneProvider
+import com.avsp.pro.audio.engine.VoiceCloneTtsEngine
 import com.avsp.pro.audio.repository.AudioRepository
 import com.avsp.pro.audio.repository.AudioRepositoryImpl
 import com.avsp.pro.capture.data.MediaRepository
@@ -66,6 +68,8 @@ class AppContainer(context: Context) {
         dao = database.moduleStatusDao()
     )
 
+    val voiceCloneProvider = LocalFileVoiceCloneProvider(storage)
+
     private val scriptGeneratorRegistry = DefaultScriptGeneratorRegistry(secureConfigStore)
 
     val scriptRepository: ScriptRepository = ScriptRepositoryImpl(
@@ -74,13 +78,18 @@ class AppContainer(context: Context) {
         logger = logger
     )
 
-    private val ttsEngineRegistry = DefaultTtsEngineRegistry(appContext, secureConfigStore)
+    private val ttsEngineRegistry = DefaultTtsEngineRegistry(
+        context = appContext,
+        secureConfigStore = secureConfigStore,
+        voiceCloneEngine = VoiceCloneTtsEngine(voiceCloneProvider)
+    )
 
     val audioRepository: AudioRepository = AudioRepositoryImpl(
         storage = storage,
         scriptRepository = scriptRepository,
         ttsRegistry = ttsEngineRegistry,
-        logger = logger
+        logger = logger,
+        voiceCloneProvider = voiceCloneProvider
     )
 
     /** M6/M7 capture media + quality metadata (keyed by Pro projectId). */

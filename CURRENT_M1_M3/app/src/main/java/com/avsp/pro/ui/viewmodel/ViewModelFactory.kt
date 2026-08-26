@@ -58,6 +58,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.avsp.pro.audio.ui.AudioTtsViewModel::class.java) ->
                 com.avsp.pro.audio.ui.AudioTtsViewModel(
                     audioRepository = container.audioRepository,
+                    projectRepository = container.projectRepository,
                     logger = container.logger
                 ) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")

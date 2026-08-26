@@ -15,12 +15,12 @@ object AudioLanguageRegistry {
         object : AudioLanguageSupport {
             override val code = "en"
             override val displayName = "English"
-            override val localeTag = "en-US"
+            override val localeTag = "en-IN"
         },
         object : AudioLanguageSupport {
             override val code = "bn"
             override val displayName = "Bengali"
-            override val localeTag = "bn-BD"
+            override val localeTag = "bn-IN"
         },
         object : AudioLanguageSupport {
             override val code = "hi"

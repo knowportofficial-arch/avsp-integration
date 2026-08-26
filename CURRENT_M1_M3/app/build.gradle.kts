@@ -13,8 +13,8 @@ android {
         applicationId = "com.avsp.pro"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.0.10-m2"
+        versionCode = 12
+        versionName = "1.0.11-m3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
