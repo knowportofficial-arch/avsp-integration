@@ -22,11 +22,18 @@ import org.json.JSONObject
  */
 class GeminiScriptGenerator(
     private val secureConfigStore: SecureConfigStore,
-    private val transport: GeminiHttpTransport = HttpUrlConnectionGeminiTransport(),
-    private val model: String = DEFAULT_MODEL,
-    private val connectTimeoutMs: Int = 15_000,
-    private val readTimeoutMs: Int = 45_000
+    transport: GeminiHttpTransport = HttpUrlConnectionGeminiTransport(),
+    private val config: GeminiConfig = GeminiConfig(),
+    connectTimeoutMs: Int = 15_000,
+    readTimeoutMs: Int = 45_000
 ) : ScriptGenerator {
+
+    private val client = GeminiClient(
+        transport = transport,
+        config = config,
+        connectTimeoutMs = connectTimeoutMs,
+        readTimeoutMs = readTimeoutMs
+    )
 
     override val providerId: String = PROVIDER_ID
     override val displayName: String = "Gemini Script Generator"
@@ -67,33 +74,33 @@ class GeminiScriptGenerator(
                 JSONObject()
                     .put("temperature", 0.35)
                     .put("responseMimeType", "application/json")
+                    .put("maxOutputTokens", 8192)
             )
             .toString()
 
-        // Key only in query param for Generative Language API — never logged.
-        val url =
-            "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-
         val response = withContext(Dispatchers.IO) {
-            transport.postJson(url, requestBody, connectTimeoutMs, readTimeoutMs)
+            client.generateContent(apiKey, requestBody)
         }
 
+        val endpointLabel = "POST ${config.apiVersion}/${config.generateContentPath()}"
         when (response.code) {
             in 200..299 -> Unit
             401, 403 -> throw GeminiScriptException(
-                message = "Gemini API key rejected",
+                message = GeminiClient.safeHttpErrorMessage(response.code, response.body)
+                    .ifBlank { "Gemini API key rejected" },
                 code = ErrorCode.CONFIG_ERROR,
-                details = "http_${response.code}"
+                details = endpointLabel
             )
             429 -> throw GeminiScriptException(
-                message = "Gemini rate limit exceeded",
+                message = GeminiClient.safeHttpErrorMessage(response.code, response.body)
+                    .ifBlank { "Gemini rate limit exceeded" },
                 code = ErrorCode.MODULE_ERROR,
-                details = "http_429"
+                details = endpointLabel
             )
             else -> throw GeminiScriptException(
-                message = "Gemini HTTP ${response.code}",
+                message = GeminiClient.safeHttpErrorMessage(response.code, response.body),
                 code = ErrorCode.MODULE_ERROR,
-                details = response.body.take(400)
+                details = endpointLabel
             )
         }
 
@@ -108,6 +115,6 @@ class GeminiScriptGenerator(
 
     companion object {
         const val PROVIDER_ID = "gemini"
-        const val DEFAULT_MODEL = "gemini-2.0-flash"
+        const val DEFAULT_MODEL = GeminiConfig.DEFAULT_MODEL
     }
 }

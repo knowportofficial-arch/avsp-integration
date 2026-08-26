@@ -7,6 +7,7 @@ import com.avsp.pro.script.contract.DurationRequest
 import com.avsp.pro.script.contract.ScriptGenerationRequest
 import com.avsp.pro.script.generator.DefaultScriptGeneratorRegistry
 import com.avsp.pro.script.generator.MockScriptGenerator
+import com.avsp.pro.script.generator.gemini.GeminiConfig
 import com.avsp.pro.script.generator.gemini.GeminiHttpResponse
 import com.avsp.pro.script.generator.gemini.GeminiScriptException
 import com.avsp.pro.script.generator.gemini.GeminiScriptGenerator
@@ -217,6 +218,35 @@ class M2GeminiScriptIntegrationTest {
             throw AssertionError("Expected GeminiScriptException")
         } catch (e: GeminiScriptException) {
             assertThat(e.errorInfo.message).contains("HTTP 500")
+            assertThat(e.errorInfo.message).contains("boom")
+            assertThat(e.errorInfo.code).isEqualTo(ErrorCode.MODULE_ERROR)
+        }
+    }
+
+    @Test
+    fun http404IncludesSafeApiMessageAndDoesNotFakeSuccess() = runBlocking {
+        secure.putSecret(SecureConfigKeys.AI_API, "test-dev-key-not-real")
+        val retiredBody =
+            """{"error":{"code":404,"message":"This model models/gemini-2.0-flash is no longer available.","status":"NOT_FOUND"}}"""
+        val generator = GeminiScriptGenerator(
+            secureConfigStore = secure,
+            transport = { _, _, _, _ -> GeminiHttpResponse(404, retiredBody) }
+        )
+        try {
+            generator.generate(
+                ScriptGenerationRequest(
+                    projectId = "prj_404",
+                    topic = "my tv",
+                    languageCode = "en",
+                    duration = DurationRequest.MediumForm
+                )
+            )
+            throw AssertionError("Expected GeminiScriptException")
+        } catch (e: GeminiScriptException) {
+            assertThat(e.errorInfo.message).contains("Gemini HTTP 404")
+            assertThat(e.errorInfo.message).contains("no longer available")
+            assertThat(e.errorInfo.message).doesNotContain("test-dev-key-not-real")
+            assertThat(e.errorInfo.details).contains("generateContent")
             assertThat(e.errorInfo.code).isEqualTo(ErrorCode.MODULE_ERROR)
         }
     }
@@ -236,8 +266,10 @@ class M2GeminiScriptIntegrationTest {
         val generator = GeminiScriptGenerator(
             secureConfigStore = secure,
             transport = { url, body, _, _ ->
-                assertThat(url).contains("generativelanguage.googleapis.com")
+                assertThat(url).contains("generativelanguage.googleapis.com/v1beta/models/")
+                assertThat(url).contains("gemini-flash-latest:generateContent")
                 assertThat(url).contains("key=test-dev-key-not-real")
+                assertThat(url).doesNotContain("gemini-2.0-flash")
                 assertThat(body).contains("Monsoon")
                 GeminiHttpResponse(200, apiBody)
             }
@@ -279,5 +311,15 @@ class M2GeminiScriptIntegrationTest {
         assertThat(registry.available().map { it.providerId })
             .containsExactly(GeminiScriptGenerator.PROVIDER_ID, MockScriptGenerator.PROVIDER_ID)
             .inOrder()
+    }
+
+    @Test
+    fun generateContentUrlUsesConfigurableModelAndV1Beta() {
+        val url = GeminiConfig().generateContentUrl("test-dev-key-not-real")
+        assertThat(url).isEqualTo(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=test-dev-key-not-real"
+        )
+        val custom = GeminiConfig(model = "gemini-2.5-flash").generateContentUrl("k")
+        assertThat(custom).contains("models/gemini-2.5-flash:generateContent")
     }
 }
