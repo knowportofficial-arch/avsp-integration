@@ -22,6 +22,36 @@ class MockTtsEngine : TtsEngine {
     override fun supportsLanguage(languageCode: String): Boolean =
         AudioLanguageRegistry.isSupported(languageCode)
 
+    override fun listVoices(): List<com.avsp.pro.audio.contract.DiscoveredVoice> = listOf(
+        com.avsp.pro.audio.contract.DiscoveredVoice(
+            voiceId = "mock-en",
+            name = "Mock English (local)",
+            locale = "en-IN",
+            languageCode = "en",
+            gender = "MALE",
+            installed = true,
+            providerId = PROVIDER_ID
+        ),
+        com.avsp.pro.audio.contract.DiscoveredVoice(
+            voiceId = "mock-hi",
+            name = "Mock Hindi (local)",
+            locale = "hi-IN",
+            languageCode = "hi",
+            gender = "MALE",
+            installed = true,
+            providerId = PROVIDER_ID
+        ),
+        com.avsp.pro.audio.contract.DiscoveredVoice(
+            voiceId = "mock-bn",
+            name = "Mock Bengali (local)",
+            locale = "bn-IN",
+            languageCode = "bn",
+            gender = "MALE",
+            installed = true,
+            providerId = PROVIDER_ID
+        )
+    )
+
     override suspend fun synthesize(request: TtsSynthesisRequest): TtsSynthesisResult {
         if (request.text.isBlank()) {
             throw AudioException(AudioErrorCode.INVALID_INPUT, "TTS text must not be blank")

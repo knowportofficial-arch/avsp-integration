@@ -3,6 +3,8 @@ package com.avsp.pro.audio.engine
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.avsp.pro.audio.contract.DiscoveredVoice
+import com.avsp.pro.audio.duration.AudioDurationReader
 import com.avsp.pro.audio.error.AudioErrorCode
 import com.avsp.pro.audio.error.AudioException
 import com.avsp.pro.audio.language.AudioLanguageRegistry
@@ -82,6 +84,28 @@ class AndroidTtsEngine(
         return result >= TextToSpeech.LANG_AVAILABLE
     }
 
+    override fun listVoices(): List<DiscoveredVoice> {
+        if (!isAvailable()) return emptyList()
+        val engine = tts ?: return emptyList()
+        val voices = runCatching { engine.voices }.getOrNull().orEmpty()
+        return voices.map { voice ->
+            val locale = voice.locale
+            val features = voice.features.orEmpty()
+            val notInstalled = features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)
+            val network = features.contains(TextToSpeech.Engine.KEY_FEATURE_NETWORK_SYNTHESIS)
+            DiscoveredVoice(
+                voiceId = voice.name,
+                name = voice.name,
+                locale = locale.toLanguageTag(),
+                languageCode = locale.language.lowercase(),
+                gender = inferGender(voice.name),
+                installed = !notInstalled,
+                providerId = providerId,
+                requiresNetwork = network
+            )
+        }.sortedBy { it.locale + it.name }
+    }
+
     override suspend fun synthesize(request: TtsSynthesisRequest): TtsSynthesisResult =
         withContext(Dispatchers.IO) {
             if (!isAvailable()) {
@@ -116,6 +140,7 @@ class AndroidTtsEngine(
             }
             engine.setSpeechRate(request.voice.speechRate.coerceIn(0.5f, 2.0f))
             engine.setPitch(request.voice.pitch.coerceIn(0.5f, 2.0f))
+            applyVoice(engine, request.voice.voiceId)
 
             val outFile = File(appContext.cacheDir, "avsp_tts_${UUID.randomUUID()}.wav")
             try {
@@ -129,10 +154,14 @@ class AndroidTtsEngine(
                     )
                 }
                 val bytes = outFile.readBytes()
-                val durationMs = if (bytes.size > 44 && bytes.copyOfRange(0, 4).toString(Charsets.US_ASCII) == "RIFF") {
-                    WavEncoder.durationMsForPcmBytes(bytes.size - 44)
-                } else {
-                    request.targetDurationMs ?: maxOf(500L, request.text.length * 60L)
+                val durationMs = AudioDurationReader.fromBytes(bytes, outFile).takeIf { it > 0L }
+                    ?: request.targetDurationMs
+                    ?: maxOf(500L, request.text.length * 60L)
+                if (bytes.size < 44L) {
+                    throw AudioException(
+                        AudioErrorCode.AUDIO_CORRUPT,
+                        "Generated audio file is corrupt or empty"
+                    )
                 }
                 TtsSynthesisResult(
                     audioBytes = bytes,
@@ -199,6 +228,34 @@ class AndroidTtsEngine(
         }
         cont.invokeOnCancellation {
             runCatching { engine.stop() }
+        }
+    }
+
+    private fun applyVoice(engine: TextToSpeech, voiceId: String) {
+        if (voiceId.isBlank() || voiceId == "default" || voiceId == "android-default") return
+        val match = runCatching { engine.voices }.getOrNull()?.find { it.name == voiceId }
+        if (match == null) {
+            throw AudioException(
+                AudioErrorCode.VOICE_UNAVAILABLE,
+                "Local voice is not installed: $voiceId. Install the language pack in Android TTS settings."
+            )
+        }
+        val features = match.features.orEmpty()
+        if (features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) {
+            throw AudioException(
+                AudioErrorCode.VOICE_UNAVAILABLE,
+                "Local voice is not installed: $voiceId. Install the language pack in Android TTS settings."
+            )
+        }
+        engine.voice = match
+    }
+
+    private fun inferGender(name: String): String? {
+        val n = name.lowercase()
+        return when {
+            n.contains("female") || n.contains("woman") || n.contains("girl") -> "FEMALE"
+            n.contains("male") || n.contains("man") || n.contains("boy") -> "MALE"
+            else -> null
         }
     }
 

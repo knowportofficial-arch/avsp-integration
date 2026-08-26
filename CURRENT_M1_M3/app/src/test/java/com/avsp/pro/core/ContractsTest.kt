@@ -78,7 +78,11 @@ class ContractsTest {
             .isEqualTo("FROZEN")
         assertThat(AvspModules.ALL.first { it.moduleId == "M3" }.defaultStatus.name)
             .isEqualTo("READY")
-        listOf("M1", "M4", "M5", "M6", "M7", "M8", "M9").forEach { id ->
+        assertThat(AvspModules.ALL.first { it.moduleId == "M6" }.defaultStatus.name)
+            .isEqualTo("READY")
+        assertThat(AvspModules.ALL.first { it.moduleId == "M7" }.defaultStatus.name)
+            .isEqualTo("READY")
+        listOf("M1", "M4", "M5", "M8", "M9").forEach { id ->
             assertThat(AvspModules.ALL.first { it.moduleId == id }.defaultStatus.name)
                 .isEqualTo("FROZEN")
         }

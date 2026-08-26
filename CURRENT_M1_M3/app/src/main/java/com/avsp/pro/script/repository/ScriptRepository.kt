@@ -26,6 +26,8 @@ interface ScriptRepository {
     suspend fun listReferences(projectId: String): List<ScriptReference>
     suspend fun updateEdited(script: ScriptPackage): ScriptPackage
     fun isAiConfigured(): Boolean
+    /** Human-readable active generator (Mock vs Gemini) — never mislabels providers. */
+    fun activeGeneratorLabel(): String
 }
 
 class ScriptRepositoryImpl(
@@ -148,6 +150,11 @@ class ScriptRepositoryImpl(
     }
 
     override fun isAiConfigured(): Boolean = generatorRegistry.isRemoteConfigured()
+
+    override fun activeGeneratorLabel(): String {
+        val generator = generatorRegistry.resolve()
+        return "${generator.displayName} (${generator.providerId}/${generator.mode.name})"
+    }
 
     private fun relativePath(scriptId: String): String =
         "${ProjectPaths.SCRIPT}/$scriptId.json"

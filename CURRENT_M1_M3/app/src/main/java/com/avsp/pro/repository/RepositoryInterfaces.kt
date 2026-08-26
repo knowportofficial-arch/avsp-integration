@@ -36,6 +36,9 @@ interface SettingsRepository {
     suspend fun updateTheme(theme: com.avsp.pro.settings.ThemePreference)
     suspend fun updateLoggingLevel(level: LogLevel)
     suspend fun refreshCredentialStates()
+    /** Stores AI API credential in SecureConfigStore — never logs the value. */
+    suspend fun setAiApiCredential(secret: String)
+    suspend fun clearAiApiCredential()
 }
 
 interface ModuleStatusRepository {

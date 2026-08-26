@@ -54,12 +54,16 @@ object AudioValidator {
         var cursor = 0L
         audio.segments.forEach { seg ->
             if (seg.status == AudioSegmentStatus.FAILED) {
-                errors += "segment ${seg.segmentId} failed: ${seg.errorCode}"
+                warnings += "segment ${seg.segmentId} failed: ${seg.errorCode ?: ""} ${seg.errorMessage ?: ""}".trim()
             }
-            if (seg.relativeAudioPath.isBlank() && seg.status == AudioSegmentStatus.GENERATED) {
+            if (seg.status == AudioSegmentStatus.STALE) {
+                warnings += "segment ${seg.segmentId} is STALE and needs regeneration"
+            }
+            val playable = seg.status == AudioSegmentStatus.GENERATED || seg.status == AudioSegmentStatus.READY
+            if (seg.relativeAudioPath.isBlank() && playable) {
                 errors += "segment ${seg.segmentId} missing audio path"
             }
-            if (seg.durationMs <= 0L && seg.status == AudioSegmentStatus.GENERATED) {
+            if (seg.durationMs <= 0L && playable) {
                 errors += "segment ${seg.segmentId} invalid duration"
             }
             if (seg.startMs != cursor) {
@@ -76,6 +80,13 @@ object AudioValidator {
                     warnings += "segment ${seg.segmentId} duration drift ${seg.durationDeltaMs}ms vs M2 plan"
                 }
             }
+        }
+
+        val playable = audio.segments.filter {
+            it.status == AudioSegmentStatus.GENERATED || it.status == AudioSegmentStatus.READY
+        }
+        if (playable.isEmpty() && audio.segments.any { it.status == AudioSegmentStatus.FAILED }) {
+            errors += "INVALID_AUDIO_TIMELINE: no playable segments"
         }
 
         val sum = audio.segments.sumOf { it.durationMs }

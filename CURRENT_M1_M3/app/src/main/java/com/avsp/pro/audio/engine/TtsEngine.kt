@@ -1,10 +1,12 @@
 package com.avsp.pro.audio.engine
 
+import com.avsp.pro.audio.contract.DiscoveredVoice
 import com.avsp.pro.audio.contract.VoiceSettings
 
 enum class TtsProviderMode {
     MOCK,
     ANDROID_LOCAL,
+    LOCAL_CLONE,
     REMOTE
 }
 
@@ -54,6 +56,7 @@ interface TtsEngine {
     fun isAvailable(): Boolean
     fun supportedLanguages(): Set<String>
     fun supportsLanguage(languageCode: String): Boolean
+    fun listVoices(): List<DiscoveredVoice> = emptyList()
     suspend fun synthesize(request: TtsSynthesisRequest): TtsSynthesisResult
 }
 

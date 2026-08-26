@@ -17,7 +17,8 @@ class DefaultTtsEngineRegistry(
     private val mock: TtsEngine = MockTtsEngine(),
     androidEngineFactory: (Context) -> TtsEngine? = { ctx ->
         runCatching { AndroidTtsEngine(ctx) }.getOrNull()
-    }
+    },
+    private val voiceCloneEngine: TtsEngine = VoiceCloneTtsEngine(UnconfiguredVoiceCloneProvider())
 ) : TtsEngineRegistry {
 
     private val androidEngine: TtsEngine? = androidEngineFactory(context.applicationContext)
@@ -28,6 +29,7 @@ class DefaultTtsEngineRegistry(
         if (android != null && android.isAvailable()) {
             list.add(android)
         }
+        list.add(voiceCloneEngine)
         return list
     }
 
@@ -39,6 +41,10 @@ class DefaultTtsEngineRegistry(
             available().find { it.providerId == id }
         }
         if (preferred != null) return preferred
+
+        if (preferredProviderId == VoiceCloneTtsEngine.PROVIDER_ID) {
+            return voiceCloneEngine
+        }
 
         // Prefer Android local when available; otherwise Mock (safe offline/default).
         val android = androidEngine

@@ -8,7 +8,11 @@ enum class AudioSegmentStatus {
     PENDING,
     GENERATED,
     FAILED,
-    SKIPPED
+    SKIPPED,
+    NOT_GENERATED,
+    GENERATING,
+    READY,
+    STALE
 }
 
 enum class AudioValidationStatus {
@@ -56,8 +60,16 @@ data class AudioSegment(
     val plannedDurationMs: Long? = null,
     val durationDeltaMs: Long? = null,
     val errorCode: String? = null,
-    val errorMessage: String? = null
-)
+    val errorMessage: String? = null,
+    val role: ClipRole = ClipRole.SCENE,
+    val title: String = "",
+    val voiceId: String = "default",
+    val sourceTextHash: String = "",
+    val generatedAt: Long = 0L
+) {
+    fun isPlayable(): Boolean =
+        status == AudioSegmentStatus.GENERATED || status == AudioSegmentStatus.READY
+}
 
 data class AudioPackageMetadata(
     val createdAt: Long,
@@ -82,8 +94,14 @@ data class AudioPackage(
     val segments: List<AudioSegment>,
     val totalDurationMs: Long,
     val validation: AudioValidation,
-    val metadata: AudioPackageMetadata
+    val metadata: AudioPackageMetadata,
+    val assignment: VoiceAssignment = VoiceAssignment(),
+    val generatedAt: Long = 0L
 ) {
+    fun introAudio(): AudioSegment? = segments.find { it.role == ClipRole.INTRO }
+    fun outroAudio(): AudioSegment? = segments.find { it.role == ClipRole.OUTRO }
+    fun sceneAudio(): List<AudioSegment> = segments.filter { it.role == ClipRole.SCENE }.sortedBy { it.order }
+
     companion object {
         const val CURRENT_VERSION = "1.0"
     }
@@ -92,5 +110,8 @@ data class AudioPackage(
 data class AudioGenerationRequest(
     val projectId: String,
     val preferredProviderId: String? = null,
-    val voice: VoiceSettings? = null
+    val voice: VoiceSettings? = null,
+    val assignment: VoiceAssignment? = null,
+    val clipSceneId: String? = null,
+    val reuseExistingPackage: Boolean = true
 )
