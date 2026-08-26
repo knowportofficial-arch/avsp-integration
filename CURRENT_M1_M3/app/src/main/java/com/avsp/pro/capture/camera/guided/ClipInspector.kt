@@ -3,6 +3,7 @@ package com.avsp.pro.capture.camera.guided
 import android.graphics.BitmapFactory
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaMetadataRetriever
 import java.io.File
 
 /**
@@ -102,6 +103,25 @@ object ClipInspector {
     }
 
     data class InspectedPhoto(val width: Int, val height: Int)
+
+    /**
+     * Container duration in milliseconds via [MediaMetadataRetriever].
+     * Null when the file cannot be opened or reports a non-positive duration.
+     */
+    fun probeDurationMs(videoFile: File): Long? {
+        if (!videoFile.exists() || videoFile.length() == 0L) return null
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(videoFile.absolutePath)
+            val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+            duration?.takeIf { it > 0L }
+        } catch (_: Exception) {
+            null
+        } finally {
+            try { retriever.release() } catch (_: Exception) {}
+        }
+    }
 
     /** Reads actual JPEG dimensions without decoding the full bitmap into memory. */
     fun inspectPhoto(photoFile: File): InspectedPhoto? {

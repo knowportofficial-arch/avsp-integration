@@ -250,7 +250,12 @@ class MediaRepository(
 
     private fun probeFileSize(uriString: String): Long {
         return try {
-            context.contentResolver.openFileDescriptor(Uri.parse(uriString), "r")?.use {
+            val uri = Uri.parse(uriString)
+            if (uri.scheme.equals("file", ignoreCase = true)) {
+                val path = uri.path ?: return 0L
+                return java.io.File(path).takeIf { it.exists() }?.length() ?: 0L
+            }
+            context.contentResolver.openFileDescriptor(uri, "r")?.use {
                 it.statSize
             } ?: 0L
         } catch (_: Exception) {
@@ -263,7 +268,12 @@ class MediaRepository(
             if (mediaType.equals("VIDEO", ignoreCase = true)) {
                 val r = MediaMetadataRetriever()
                 try {
-                    r.setDataSource(context, Uri.parse(uriString))
+                    val uri = Uri.parse(uriString)
+                    if (uri.scheme.equals("file", ignoreCase = true) && uri.path != null) {
+                        r.setDataSource(uri.path)
+                    } else {
+                        r.setDataSource(context, uri)
+                    }
                     val w = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
                     val h = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
                     val fps = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
@@ -274,8 +284,13 @@ class MediaRepository(
                 }
             } else {
                 val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                context.contentResolver.openInputStream(Uri.parse(uriString))?.use {
-                    BitmapFactory.decodeStream(it, null, opts)
+                val uri = Uri.parse(uriString)
+                if (uri.scheme.equals("file", ignoreCase = true) && uri.path != null) {
+                    BitmapFactory.decodeFile(uri.path, opts)
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, opts)
+                    }
                 }
                 Triple(opts.outWidth.coerceAtLeast(0), opts.outHeight.coerceAtLeast(0), 0)
             }

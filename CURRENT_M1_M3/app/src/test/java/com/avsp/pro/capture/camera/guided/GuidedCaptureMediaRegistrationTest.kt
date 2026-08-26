@@ -15,7 +15,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Guided Capture completion must register video under the Pro projectId.
+ * Guided Capture completion must register video under the Pro projectId,
+ * and must not invent media for unplayable files.
  */
 class GuidedCaptureMediaRegistrationTest {
 
@@ -54,9 +55,9 @@ class GuidedCaptureMediaRegistrationTest {
                 width = 1080,
                 height = 1920,
                 createdAt = System.currentTimeMillis(),
-                tags = listOf("GUIDED", "KEEP"),
+                tags = listOf("WIDE", "KEEP"),
                 metadata = mapOf(
-                    "uri" to clipFile.toURI().toString(),
+                    "uri" to "content://com.avsp.pro.guided.fileprovider/guided_capture/t/c/clip.mp4",
                     "mediaType" to "VIDEO",
                     "source" to "M7_CAPTURE"
                 )
@@ -68,7 +69,7 @@ class GuidedCaptureMediaRegistrationTest {
             assertThat(listed[0].projectId).isEqualTo(projectId)
             assertThat(listed[0].mimeType).isEqualTo("video/mp4")
             assertThat(listed[0].metadata["mediaType"]).isEqualTo("VIDEO")
-            assertThat(listed[0].metadata["uri"]).isEqualTo(clipFile.toURI().toString())
+            assertThat(listed[0].metadata["uri"]).startsWith("content://")
             Unit
         }
     }
@@ -85,6 +86,19 @@ class GuidedCaptureMediaRegistrationTest {
             assertThat(repo.listMediaAssets("missing")).isEmpty()
             Unit
         }
+    }
+
+    @Test
+    fun unplayableFileMustNotBeTreatedAsRegisteredMedia() {
+        val bogus = File.createTempFile("guided_bogus", ".mp4").apply {
+            writeBytes(ByteArray(10_000) { 7 })
+            deleteOnExit()
+        }
+        assertThat(GuidedCaptureVideoValidator.isPlayable(bogus)).isFalse()
+        // Registration gate in GuidedCaptureActivity skips non-playable files before
+        // MediaRepository.saveCapturedMedia — unit-level contract of that gate:
+        val shouldRegister = bogus.exists() && GuidedCaptureVideoValidator.isPlayable(bogus)
+        assertThat(shouldRegister).isFalse()
     }
 
     private class FakeProProjects : ProjectRepository {

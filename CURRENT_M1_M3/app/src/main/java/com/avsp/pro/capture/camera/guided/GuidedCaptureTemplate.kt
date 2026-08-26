@@ -3,6 +3,7 @@ package com.avsp.pro.capture.camera.guided
 import com.avsp.pro.capture.camera.model.CameraAspectRatio
 import com.avsp.pro.capture.camera.model.CameraFrameRate
 import com.avsp.pro.capture.camera.model.CameraResolution
+import com.avsp.pro.capture.camera.model.CameraShotType
 import com.avsp.pro.capture.camera.model.CaptureOrientation
 import java.util.UUID
 
@@ -12,6 +13,10 @@ import java.util.UUID
  *
  * This is intentionally independent of [com.avsp.pro.capture.camera.mission.ShotMission],
  * which belongs to the pre-existing AI cinematographer subsystem (out of scope for M6).
+ *
+ * Framing zoom reuses existing [CameraShotType] ratios when the category maps to
+ * WIDE / MEDIUM / CLOSE. Live subject/framing/stability ML validation is NOT part of
+ * Guided Capture (see functional audit).
  */
 enum class GuidedClipMediaType { PHOTO, VIDEO }
 
@@ -38,6 +43,22 @@ data class GuidedClipSpec(
         require(aspectRatio.isPortrait == (orientation == CaptureOrientation.PORTRAIT)) {
             "aspectRatio ($aspectRatio) and orientation ($orientation) are inconsistent"
         }
+    }
+
+    /**
+     * Maps template category labels onto the existing CameraX zoom shot-type contract.
+     * INTRO uses WIDE framing (establishing). Unknown categories default to WIDE.
+     */
+    fun toCameraShotType(): CameraShotType = when (category.trim().uppercase()) {
+        "MEDIUM" -> CameraShotType.MEDIUM
+        "CLOSE", "CLOSEUP", "CLOSE_UP", "DETAIL" -> CameraShotType.CLOSE
+        else -> CameraShotType.WIDE // WIDE, INTRO, and unknown
+    }
+
+    /** User-facing instruction for the current planned shot (type + duration + framing). */
+    fun captureInstruction(): String {
+        val shot = toCameraShotType()
+        return "$clipName · $category · ${targetDurationSeconds}s · ${shot.displayName} (${shot.description})"
     }
 }
 

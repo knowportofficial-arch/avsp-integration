@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.avsp.pro.capture.camera.CameraController
 import com.avsp.pro.capture.camera.model.CameraProfile
-import com.avsp.pro.capture.camera.model.CameraShotType
 import com.avsp.pro.capture.camera.vision.VisualAnalysisResult
 import com.avsp.pro.capture.camera.vision.VisualAnalyzer
 import java.io.File
@@ -97,8 +96,9 @@ class GuidedCaptureViewModel(
         if (!GuidedCaptureVideoPolicy.shouldBindCamera(_state.value.phase)) return
 
         val clip = _state.value.currentClip ?: return
+        val shotType = clip.toCameraShotType()
         val profile = CameraProfile(
-            shotType = CameraShotType.WIDE,
+            shotType = shotType,
             resolution = clip.resolution,
             frameRate = clip.frameRate,
             lensFacing = androidx.camera.core.CameraSelector.LENS_FACING_BACK,
@@ -114,6 +114,8 @@ class GuidedCaptureViewModel(
         // M6.1: request the clip's orientation be applied to capture output (see
         // CameraController.applyOrientation KDoc for exactly what this can and can't guarantee).
         cameraController.applyOrientation(clip.orientation)
+        // Reuse existing CameraShotType zoom contract for WIDE/MEDIUM/CLOSE categories.
+        cameraController.applyShotTypeZoom(shotType)
         val range = cameraController.exposureCompensationRange() ?: 0..0
         _state.update { it.copy(exposureIndex = 0, exposureRange = range) }
     }
@@ -253,79 +255,94 @@ class GuidedCaptureViewModel(
     private fun finalizeVideoClip(clip: GuidedClipSpec, ready: GuidedCaptureStorage.StorageResult.Ready) {
         _state.update { it.copy(phase = GuidedCapturePhase.SAVING) }
         viewModelScope.launch {
-            val thumbOk = storage.writeThumbnail(ready.videoFile, ready.thumbFile)
-            val durationMs = System.currentTimeMillis() - recordingStartedAtMs
-            val location = bestEffortLocation()
+            // Reject unplayable / truncated containers even if Finalize reported success
+            // or SOURCE_INACTIVE recovery left a non-empty file on disk.
+            when (val validation = GuidedCaptureVideoValidator.validate(ready.videoFile)) {
+                is GuidedCaptureVideoValidator.Result.Unplayable -> {
+                    GuidedCaptureVideoPolicy.cleanupPartialVideo(ready.videoFile)
+                    _state.update {
+                        it.copy(
+                            phase = GuidedCapturePhase.ERROR,
+                            errorMessage = "Recorded video is not playable: ${validation.reason}"
+                        )
+                    }
+                    return@launch
+                }
+                is GuidedCaptureVideoValidator.Result.Playable -> {
+                    val thumbOk = storage.writeThumbnail(ready.videoFile, ready.thumbFile)
+                    val wallClockMs = System.currentTimeMillis() - recordingStartedAtMs
+                    val durationMs = validation.durationMs.takeIf { it > 0L } ?: wallClockMs
+                    val location = bestEffortLocation()
+                    val inspected = validation.inspected
 
-            // M6.1: inspect the ACTUAL recorded file rather than assuming the request succeeded.
-            val inspected = ClipInspector.inspectVideo(ready.videoFile)
+                    val requestedWidth = clip.resolution.width
+                    val requestedHeight = clip.resolution.height
+                    val requestedFps = clip.frameRate.targetFps
+                    val requestedAspectLabel = clip.aspectRatio.displayName
 
-            val requestedWidth = clip.resolution.width
-            val requestedHeight = clip.resolution.height
-            val requestedFps = clip.frameRate.targetFps
-            val requestedAspectLabel = clip.aspectRatio.displayName
+                    val fpsVerified = inspected.measuredFps != null
+                    val effectiveFps = inspected.measuredFps?.let { Math.round(it).toInt() } ?: requestedFps
 
-            val dimensionsVerified = inspected != null
-            val fpsVerified = inspected?.measuredFps != null
+                    val actualAspectClassification =
+                        AspectRatioValidator.classify(inspected.displayWidth, inspected.displayHeight)
+                    val actualAspectLabel = when (actualAspectClassification) {
+                        AspectRatioValidator.Classification.PORTRAIT_9_16 -> "9:16"
+                        AspectRatioValidator.Classification.LANDSCAPE_16_9 -> "16:9"
+                        AspectRatioValidator.Classification.OTHER -> "OTHER"
+                    }
+                    val aspectMatchesRequest = AspectRatioValidator.matches(
+                        inspected.displayWidth,
+                        inspected.displayHeight,
+                        clip.aspectRatio
+                    )
+                    val actualOrientationLabel =
+                        if (inspected.displayWidth < inspected.displayHeight) "PORTRAIT" else "LANDSCAPE"
 
-            val effectiveWidth = inspected?.displayWidth ?: requestedWidth
-            val effectiveHeight = inspected?.displayHeight ?: requestedHeight
-            val effectiveFps = inspected?.measuredFps?.let { Math.round(it).toInt() } ?: requestedFps
+                    val metadata = ClipMetadata(
+                        clipId = clip.clipId,
+                        category = clip.category,
+                        date = GuidedCaptureStorage.currentDate(),
+                        time = GuidedCaptureStorage.currentTime(),
+                        durationMs = durationMs,
+                        width = inspected.displayWidth,
+                        height = inspected.displayHeight,
+                        fps = effectiveFps,
+                        orientation = clip.orientation.name,
+                        requestedWidth = requestedWidth,
+                        requestedHeight = requestedHeight,
+                        requestedFps = requestedFps,
+                        requestedAspectRatio = requestedAspectLabel,
+                        actualFps = inspected.measuredFps,
+                        actualAspectRatio = actualAspectLabel,
+                        actualOrientation = actualOrientationLabel,
+                        dimensionsVerified = true,
+                        fpsVerified = fpsVerified,
+                        aspectRatioMatchesRequest = aspectMatchesRequest,
+                        latitude = location?.latitude,
+                        longitude = location?.longitude,
+                        device = storage.deviceLabel(),
+                        file = ready.videoFile.absolutePath
+                    )
+                    val jsonOk = storage.writeMetadataJson(ready.jsonFile, metadata)
+                    if (!jsonOk) {
+                        _state.update {
+                            it.copy(
+                                phase = GuidedCapturePhase.ERROR,
+                                errorMessage = "Failed to write clip metadata JSON."
+                            )
+                        }
+                        return@launch
+                    }
 
-            val actualAspectClassification = inspected?.let {
-                AspectRatioValidator.classify(it.displayWidth, it.displayHeight)
-            }
-            val actualAspectLabel = when (actualAspectClassification) {
-                AspectRatioValidator.Classification.PORTRAIT_9_16 -> "9:16"
-                AspectRatioValidator.Classification.LANDSCAPE_16_9 -> "16:9"
-                AspectRatioValidator.Classification.OTHER -> "OTHER"
-                null -> null
-            }
-            val aspectMatchesRequest = inspected?.let {
-                AspectRatioValidator.matches(it.displayWidth, it.displayHeight, clip.aspectRatio)
-            }
-            val actualOrientationLabel = inspected?.let {
-                if (it.displayWidth < it.displayHeight) "PORTRAIT" else "LANDSCAPE"
-            }
-
-            val metadata = ClipMetadata(
-                clipId = clip.clipId,
-                category = clip.category,
-                date = GuidedCaptureStorage.currentDate(),
-                time = GuidedCaptureStorage.currentTime(),
-                durationMs = durationMs,
-                width = effectiveWidth,
-                height = effectiveHeight,
-                fps = effectiveFps,
-                orientation = clip.orientation.name,
-                requestedWidth = requestedWidth,
-                requestedHeight = requestedHeight,
-                requestedFps = requestedFps,
-                requestedAspectRatio = requestedAspectLabel,
-                actualFps = inspected?.measuredFps,
-                actualAspectRatio = actualAspectLabel,
-                actualOrientation = actualOrientationLabel,
-                dimensionsVerified = dimensionsVerified,
-                fpsVerified = fpsVerified,
-                aspectRatioMatchesRequest = aspectMatchesRequest,
-                latitude = location?.latitude,
-                longitude = location?.longitude,
-                device = storage.deviceLabel(),
-                file = ready.videoFile.absolutePath
-            )
-            val jsonOk = storage.writeMetadataJson(ready.jsonFile, metadata)
-            if (!jsonOk) {
-                _state.update { it.copy(phase = GuidedCapturePhase.ERROR, errorMessage = "Failed to write clip metadata JSON.") }
-                return@launch
-            }
-
-            _state.update {
-                it.copy(
-                    phase = GuidedCapturePhase.REVIEW,
-                    lastRecordedFile = ready.videoFile.absolutePath,
-                    lastRecordedThumbnail = if (thumbOk) ready.thumbFile.absolutePath else null,
-                    completedClips = it.completedClips + metadata
-                )
+                    _state.update {
+                        it.copy(
+                            phase = GuidedCapturePhase.REVIEW,
+                            lastRecordedFile = ready.videoFile.absolutePath,
+                            lastRecordedThumbnail = if (thumbOk) ready.thumbFile.absolutePath else null,
+                            completedClips = it.completedClips + metadata
+                        )
+                    }
+                }
             }
         }
     }

@@ -183,9 +183,18 @@ fun MediaLibraryScreen(
                             item = item,
                             onClick = {
                                 try {
+                                    val raw = Uri.parse(item.uriString)
+                                    val playableUri = if (raw.scheme.equals("file", ignoreCase = true) && raw.path != null) {
+                                        com.avsp.pro.capture.camera.guided.GuidedCaptureUris.contentUriForFile(
+                                            context,
+                                            java.io.File(raw.path!!)
+                                        )
+                                    } else {
+                                        raw
+                                    }
                                     val intent = Intent(Intent.ACTION_VIEW).apply {
                                         setDataAndType(
-                                            Uri.parse(item.uriString),
+                                            playableUri,
                                             if (item.mediaType == "PHOTO") "image/*" else "video/*"
                                         )
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

@@ -2,7 +2,6 @@ package com.avsp.pro.capture.camera.guided
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -69,14 +68,31 @@ class GuidedCaptureActivity : ComponentActivity() {
         lifecycleScope.launch {
             clips.forEach { clip ->
                 val file = File(clip.file)
-                val uri = Uri.fromFile(file).toString()
+                // Skip corrupt / unplayable outputs — do not create MediaEntity rows for them.
+                if (!file.exists() || !GuidedCaptureVideoValidator.isPlayable(file)) {
+                    return@forEach
+                }
+                val uri = GuidedCaptureUris.contentUriForFile(this@GuidedCaptureActivity, file).toString()
+                val mediaType = if (file.name.endsWith(".jpg", ignoreCase = true) ||
+                    file.name.endsWith(".jpeg", ignoreCase = true)
+                ) {
+                    "PHOTO"
+                } else {
+                    "VIDEO"
+                }
+                val shotType = when (clip.category.trim().uppercase()) {
+                    "MEDIUM" -> "MEDIUM"
+                    "CLOSE", "CLOSEUP", "CLOSE_UP", "DETAIL" -> "CLOSE"
+                    "WIDE" -> "WIDE"
+                    else -> "GUIDED"
+                }
                 runCatching {
                     mediaRepository.saveCapturedMedia(
                         projectId = projectId,
                         uriString = uri,
-                        mediaType = "VIDEO",
+                        mediaType = mediaType,
                         displayName = clip.clipId,
-                        shotType = "GUIDED",
+                        shotType = shotType,
                         durationSeconds = (clip.durationMs / 1000L).coerceAtLeast(0L),
                         latitude = clip.latitude,
                         longitude = clip.longitude,

@@ -18,11 +18,15 @@ object GuidedCaptureVideoPolicy {
 
     /**
      * ERROR_SOURCE_INACTIVE can still produce a usable file (frames up to detach).
-     * Recover when the output exists and has non-trivial size.
+     * Recover only when the output validates as a playable MP4 — size alone is not enough.
      */
-    fun isRecoverableFinalizeError(errorCode: Int, videoFile: File): Boolean {
+    fun isRecoverableFinalizeError(
+        errorCode: Int,
+        videoFile: File,
+        isPlayable: (File) -> Boolean = { GuidedCaptureVideoValidator.isPlayable(it) }
+    ): Boolean {
         if (errorCode != VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE) return false
-        return videoFile.exists() && videoFile.length() >= MIN_RECOVERABLE_VIDEO_BYTES
+        return isPlayable(videoFile)
     }
 
     fun cleanupPartialVideo(videoFile: File) {
@@ -33,6 +37,9 @@ object GuidedCaptureVideoPolicy {
 
     const val ERROR_SOURCE_INACTIVE = VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE
 
-    /** Below this, treat SOURCE_INACTIVE output as unusable (no valid media). */
+    /**
+     * Soft floor used by [GuidedCaptureVideoValidator] before deeper container checks.
+     * Not sufficient alone for recovery — see [isRecoverableFinalizeError].
+     */
     const val MIN_RECOVERABLE_VIDEO_BYTES = 8_192L
 }
