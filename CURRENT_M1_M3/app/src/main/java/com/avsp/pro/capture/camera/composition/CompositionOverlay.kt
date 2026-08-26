@@ -250,8 +250,9 @@ fun CompositionOverlay(
                         Spacer(Modifier.width(9.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = activeMissionShot?.title?.uppercase()
-                                    ?: "${decision.shotType.displayName} SHOT",
+                                text = activeMissionShot?.let {
+                                    com.avsp.pro.capture.camera.guided.GuidedCaptureShotNaming.formatMissionShot(it)
+                                } ?: "${decision.shotType.displayName} SHOT",
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Black,
@@ -341,7 +342,8 @@ fun CompositionOverlay(
                             text = if (shot.title.contains("Take My Photo", ignoreCase = true)) {
                                 shot.title
                             } else {
-                                "${shot.shotType.displayName} • ${shot.title}"
+                                // Semantic title first; framing is technical annotation only.
+                                "${shot.title} · ${shot.shotType.displayName}"
                             },
                             color = Slate200,
                             fontWeight = FontWeight.Medium,

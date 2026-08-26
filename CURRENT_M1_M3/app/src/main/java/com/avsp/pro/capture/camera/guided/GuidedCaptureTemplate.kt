@@ -48,6 +48,7 @@ data class GuidedClipSpec(
     /**
      * Maps template category labels onto the existing CameraX zoom shot-type contract.
      * INTRO uses WIDE framing (establishing). Unknown categories default to WIDE.
+     * This mapping is technical framing only — it must never replace [clipName]/[category].
      */
     fun toCameraShotType(): CameraShotType = when (category.trim().uppercase()) {
         "MEDIUM" -> CameraShotType.MEDIUM
@@ -55,11 +56,16 @@ data class GuidedClipSpec(
         else -> CameraShotType.WIDE // WIDE, INTRO, and unknown
     }
 
-    /** User-facing instruction for the current planned shot (type + duration + framing). */
-    fun captureInstruction(): String {
-        val shot = toCameraShotType()
-        return "$clipName · $category · ${targetDurationSeconds}s · ${shot.displayName} (${shot.description})"
-    }
+    /**
+     * Preserved Guided Capture naming:
+     * "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
+     */
+    fun captureInstruction(): String = GuidedCaptureShotNaming.format(
+        semanticName = clipName,
+        shotCode = category,
+        durationSeconds = targetDurationSeconds,
+        framing = toCameraShotType()
+    )
 }
 
 /**

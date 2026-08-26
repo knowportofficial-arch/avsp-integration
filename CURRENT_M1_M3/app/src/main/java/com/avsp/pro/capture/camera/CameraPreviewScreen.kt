@@ -389,17 +389,20 @@ fun CameraPreviewScreen(
                     Icon(Icons.Default.Close, contentDescription = "Close Camera", tint = Slate100)
                 }
 
-                // Current shot title — always visible and independent of the AI guidance overlay.
+                // Current shot title — semantic shot-plan name first; framing remains technical.
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Slate950.copy(alpha = 0.72f)
                 ) {
+                    val missionShot = uiState.activeMission?.currentShot
                     Text(
-                        text = "${uiState.currentProfile.shotType.displayName.uppercase()} SHOT",
+                        text = missionShot?.let { com.avsp.pro.capture.camera.guided.GuidedCaptureShotNaming.formatMissionShot(it) }
+                            ?: "${uiState.currentProfile.shotType.displayName.uppercase()} SHOT",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        maxLines = 2
                     )
                 }
 

@@ -15,6 +15,9 @@ import org.json.JSONObject
  */
 data class ClipMetadata(
     val clipId: String,
+    /** Semantic shot name from the template / shot-plan (e.g. Intro, Scene 1). */
+    val clipName: String,
+    /** Shot code from the template / shot-plan (e.g. INTRO, WIDE). */
     val category: String,
     val date: String,           // yyyy-MM-dd
     val time: String,           // HH:mm:ss (24h, local)
@@ -50,6 +53,7 @@ data class ClipMetadata(
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("clip_id", clipId)
+        put("clip_name", clipName)
         put("category", category)
         put("date", date)
         put("time", time)
@@ -77,6 +81,11 @@ data class ClipMetadata(
     companion object {
         fun fromJson(json: JSONObject): ClipMetadata = ClipMetadata(
             clipId = json.getString("clip_id"),
+            clipName = if (json.has("clip_name") && !json.isNull("clip_name")) {
+                json.getString("clip_name")
+            } else {
+                json.optString("category", "")
+            },
             category = json.getString("category"),
             date = json.getString("date"),
             time = json.getString("time"),

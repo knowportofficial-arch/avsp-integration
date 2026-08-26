@@ -138,19 +138,15 @@ fun GuidedCaptureScreen(
         ) {
             state.currentClip?.let { clip ->
                 Surface(shape = RoundedCornerShape(8.dp), color = Slate900.copy(alpha = 0.8f)) {
-                    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text(
-                            text = clip.captureInstruction(),
-                            color = Slate100,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${clip.aspectRatio.displayName} · ${clip.orientation.name} · ${state.phase.name}",
-                            color = Slate400,
-                            fontSize = 10.sp
-                        )
-                    }
+                    // Preserved naming contract — single line, semantic name first:
+                    // "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
+                    Text(
+                        text = clip.captureInstruction(),
+                        color = Slate100,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -80,19 +80,21 @@ class GuidedCaptureActivity : ComponentActivity() {
                 } else {
                     "VIDEO"
                 }
-                val shotType = when (clip.category.trim().uppercase()) {
+                // Preserve semantic shot name + shot code. Framing (WIDE/MEDIUM/CLOSE) is
+                // technical only and must not replace clipName / category.
+                val framing = when (clip.category.trim().uppercase()) {
                     "MEDIUM" -> "MEDIUM"
                     "CLOSE", "CLOSEUP", "CLOSE_UP", "DETAIL" -> "CLOSE"
                     "WIDE" -> "WIDE"
-                    else -> "GUIDED"
+                    else -> "WIDE" // INTRO and unknown use establishing framing
                 }
                 runCatching {
                     mediaRepository.saveCapturedMedia(
                         projectId = projectId,
                         uriString = uri,
                         mediaType = mediaType,
-                        displayName = clip.clipId,
-                        shotType = shotType,
+                        displayName = clip.clipName.ifBlank { clip.category },
+                        shotType = clip.category.ifBlank { framing },
                         durationSeconds = (clip.durationMs / 1000L).coerceAtLeast(0L),
                         latitude = clip.latitude,
                         longitude = clip.longitude,

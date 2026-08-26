@@ -102,11 +102,33 @@ class GuidedCaptureShotConfigTest {
 
         assertThat(byCategory["MEDIUM"]!!.toCameraShotType().defaultZoomRatio).isEqualTo(1.8f)
         assertThat(byCategory["CLOSE"]!!.toCameraShotType().defaultZoomRatio).isEqualTo(3.0f)
+    }
 
-        val instruction = byCategory["CLOSE"]!!.captureInstruction()
-        assertThat(instruction).contains("CLOSE")
-        assertThat(instruction).contains("5s")
-        assertThat(instruction).contains(CameraShotType.CLOSE.displayName)
+    @Test
+    fun preservedNamingFormat_introExactly() {
+        val intro = GuidedCaptureTemplate.sample().clips.first { it.category == "INTRO" }
+        assertThat(intro.clipName).isEqualTo("Intro")
+        assertThat(intro.captureInstruction()).isEqualTo(
+            "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
+        )
+        // Framing label must not replace the semantic name / shot code.
+        assertThat(intro.captureInstruction()).startsWith("Intro · INTRO ·")
+    }
+
+    @Test
+    fun preservedNamingFormat_doesNotPromoteFramingAsSemanticNameAlone() {
+        val close = GuidedCaptureTemplate.sample().clips.first { it.category == "CLOSE" }
+        val formatted = GuidedCaptureShotNaming.format(
+            semanticName = "Established",
+            shotCode = "ESTABLISHED",
+            durationSeconds = 5,
+            framing = CameraShotType.CLOSE
+        )
+        assertThat(formatted).isEqualTo(
+            "Established · ESTABLISHED · 5s · Close (Detail, face, product & macro texture shot)"
+        )
+        assertThat(formatted.startsWith("Close ·")).isFalse()
+        assertThat(close.clipName).isEqualTo("Close") // sample template data unchanged
     }
 
     @Test

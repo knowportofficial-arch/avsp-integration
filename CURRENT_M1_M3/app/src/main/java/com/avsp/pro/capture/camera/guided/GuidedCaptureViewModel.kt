@@ -300,6 +300,7 @@ class GuidedCaptureViewModel(
 
                     val metadata = ClipMetadata(
                         clipId = clip.clipId,
+                        clipName = clip.clipName,
                         category = clip.category,
                         date = GuidedCaptureStorage.currentDate(),
                         time = GuidedCaptureStorage.currentTime(),
@@ -380,6 +381,7 @@ class GuidedCaptureViewModel(
 
                     val metadata = ClipMetadata(
                         clipId = clip.clipId,
+                        clipName = clip.clipName,
                         category = clip.category,
                         date = GuidedCaptureStorage.currentDate(),
                         time = GuidedCaptureStorage.currentTime(),
