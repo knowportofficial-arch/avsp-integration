@@ -297,7 +297,7 @@ fun GuidedCaptureScreen(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 when (state.phase) {
@@ -332,44 +332,27 @@ fun GuidedCaptureScreen(
                         }
                     }
                     GuidedCapturePhase.REVIEW -> {
+                        // Always show both actions in REVIEW (duration already satisfied —
+                        // short takes use INSUFFICIENT_DURATION with RETAKE only).
+                        // Quality badge above may still say RETAKE · N%; user can still KEEP.
                         OutlinedButton(
                             onClick = { viewModel.retake() },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Rose500)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Rose500),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = "Retake")
                             Spacer(Modifier.width(6.dp))
                             Text("RETAKE")
                         }
-                        // KEEP only when duration was met and quality recommends KEEP.
-                        // REVIEW / NEXT remain available for non-KEEP recommendations after a valid take.
-                        if (state.keepEligible) {
+                        if (GuidedCaptureReviewUi.shouldShowAcceptAction(state.phase)) {
                             Button(
                                 onClick = { viewModel.acceptAndAdvance() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500),
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = "Keep")
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (state.isLastClip) "KEEP · FINISH" else "KEEP · NEXT")
-                            }
-                        } else if (state.durationSatisfied &&
-                            state.lastRecommendation != Recommendation.RETAKE
-                        ) {
-                            Button(
-                                onClick = { viewModel.acceptAndAdvance() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = "Accept")
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    when {
-                                        state.lastRecommendation == Recommendation.REVIEW && state.isLastClip ->
-                                            "REVIEW · FINISH"
-                                        state.lastRecommendation == Recommendation.REVIEW ->
-                                            "REVIEW · NEXT"
-                                        state.isLastClip -> "FINISH"
-                                        else -> "NEXT"
-                                    }
-                                )
+                                Text(GuidedCaptureReviewUi.acceptButtonLabel(state.isLastClip))
                             }
                         }
                     }

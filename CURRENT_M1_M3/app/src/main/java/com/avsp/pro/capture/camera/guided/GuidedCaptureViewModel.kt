@@ -720,14 +720,17 @@ class GuidedCaptureViewModel(
 
     /**
      * Accepts the last captured clip and advances.
-     * Blocked when KEEP is not eligible (e.g. insufficient video duration).
+     * Available in REVIEW after duration was met (NEXT / FINISH).
+     * Blocked for INSUFFICIENT_DURATION / short video takes.
      */
     fun acceptAndAdvance() {
         val state = _state.value
         if (state.phase == GuidedCapturePhase.INSUFFICIENT_DURATION) return
         if (state.currentClip?.mediaType == GuidedClipMediaType.VIDEO && !state.durationSatisfied) return
-        // KEEP action requires keepEligible; REVIEW/NEXT still allowed when duration was met.
-        if (state.lastRecommendation == Recommendation.KEEP && !state.keepEligible) return
+        // REVIEW always allows accept (NEXT/FINISH) once duration was met.
+        // Quality badge may still recommend RETAKE; user override advances the session.
+        // keepEligible remains the M7 quality signal only — it must not hide NEXT/FINISH.
+        if (state.phase != GuidedCapturePhase.REVIEW) return
 
         if (state.isLastClip) {
             _state.update {
