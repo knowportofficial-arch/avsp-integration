@@ -53,3 +53,6 @@ Thumbs.db
 
 # Distribution archives
 *.zip
+
+# Guided Capture unit-test fixtures (tiny MP4s)
+!CURRENT_M1_M3/app/src/test/resources/guided/*.mp4
