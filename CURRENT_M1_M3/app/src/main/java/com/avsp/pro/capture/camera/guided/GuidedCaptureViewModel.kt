@@ -70,6 +70,14 @@ class GuidedCaptureViewModel(
     private var userPlanContext: String? = null
     private var lastCapabilities: CameraCapabilities = CameraCapabilities()
 
+    /**
+     * Tracks whether the active video recording reached the shot-plan required duration
+     * before stop was requested (timer completion vs user early stop).
+     */
+    private var videoStopMetRequiredDuration: Boolean = false
+    private var pendingRequiredDurationMs: Long = 0L
+
+
     fun loadSession(
         session: GuidedCapturePlanAdapter.GuidedSession,
         planContext: String? = null
@@ -303,11 +311,20 @@ class GuidedCaptureViewModel(
     }
 
     private fun startVideoCapture(clip: GuidedClipSpec, ready: GuidedCaptureStorage.StorageResult.Ready) {
+        val requiredMs = GuidedCaptureDurationGate.requiredDurationMs(clip)
+        pendingRequiredDurationMs = requiredMs
+        videoStopMetRequiredDuration = false
         _state.update {
             it.copy(
                 phase = GuidedCapturePhase.RECORDING,
                 elapsedMs = 0L,
-                targetDurationMs = clip.targetDurationSeconds * 1000L
+                targetDurationMs = requiredMs,
+                keepEligible = false,
+                durationSatisfied = false,
+                recordedDurationMs = 0L,
+                insufficientDurationMessage = null,
+                lastRecommendation = null,
+                lastQualityPercent = 0
             )
         }
         recordingStartedAtMs = System.currentTimeMillis()
@@ -318,6 +335,7 @@ class GuidedCaptureViewModel(
             onError = { e ->
                 // Test #13 — interrupted recording path.
                 stopRecordingProgressTicker()
+                videoStopMetRequiredDuration = false
                 _state.update { it.copy(phase = GuidedCapturePhase.ERROR, errorMessage = "Recording failed: ${e.message}") }
             }
         )
@@ -325,8 +343,15 @@ class GuidedCaptureViewModel(
         recordingProgressJob = viewModelScope.launch {
             while (_state.value.phase == GuidedCapturePhase.RECORDING) {
                 val elapsed = System.currentTimeMillis() - recordingStartedAtMs
-                _state.update { it.copy(elapsedMs = elapsed) }
-                if (elapsed >= clip.targetDurationSeconds * 1000L) {
+                _state.update {
+                    it.copy(
+                        elapsedMs = elapsed,
+                        // KEEP must stay unavailable for the entire recording window.
+                        keepEligible = false
+                    )
+                }
+                if (elapsed >= requiredMs) {
+                    videoStopMetRequiredDuration = true
                     stopRecording()
                     break
                 }
@@ -354,7 +379,8 @@ class GuidedCaptureViewModel(
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.ERROR,
-                            errorMessage = "Recording finalized with error code ${event.error}"
+                            errorMessage = "Recording finalized with error code ${event.error}",
+                            keepEligible = false
                         )
                     }
                     return
@@ -365,8 +391,17 @@ class GuidedCaptureViewModel(
         }
     }
 
-    /** Public so the UI's "stop early" control can end a clip before its target duration. */
+    /**
+     * Ends the active recording. If called before the shot-plan duration is met,
+     * KEEP will not be offered after finalize (insufficient-duration path).
+     */
     fun stopRecording() {
+        val required = pendingRequiredDurationMs
+        val elapsed = System.currentTimeMillis() - recordingStartedAtMs
+        if (required > 0L && elapsed >= required) {
+            videoStopMetRequiredDuration = true
+        }
+        // Early user stop: leave videoStopMetRequiredDuration false unless timer already set it.
         cameraController.stopRecording()
     }
 
@@ -376,7 +411,12 @@ class GuidedCaptureViewModel(
     }
 
     private fun finalizeVideoClip(clip: GuidedClipSpec, ready: GuidedCaptureStorage.StorageResult.Ready) {
-        _state.update { it.copy(phase = GuidedCapturePhase.SAVING) }
+        _state.update {
+            it.copy(
+                phase = GuidedCapturePhase.SAVING,
+                keepEligible = false
+            )
+        }
         viewModelScope.launch {
             // Reject unplayable / truncated containers even if Finalize reported success
             // or SOURCE_INACTIVE recovery left a non-empty file on disk.
@@ -386,7 +426,8 @@ class GuidedCaptureViewModel(
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.ERROR,
-                            errorMessage = "Recorded video is not playable: ${validation.reason}"
+                            errorMessage = "Recorded video is not playable: ${validation.reason}",
+                            keepEligible = false
                         )
                     }
                     return@launch
@@ -395,6 +436,17 @@ class GuidedCaptureViewModel(
                     val thumbOk = storage.writeThumbnail(ready.videoFile, ready.thumbFile)
                     val wallClockMs = System.currentTimeMillis() - recordingStartedAtMs
                     val durationMs = validation.durationMs.takeIf { it > 0L } ?: wallClockMs
+                    val requiredMs = GuidedCaptureDurationGate.requiredDurationMs(clip)
+                    val durationSatisfied = GuidedCaptureDurationGate.hasMetRequiredDuration(
+                        requiredDurationMs = requiredMs,
+                        actualDurationMs = durationMs
+                    ) || (
+                        // Timer-completed stop with encoder lag: wall-clock met requirement
+                        // and stop was requested after the timer — still require media ≥ 90%.
+                        videoStopMetRequiredDuration &&
+                            wallClockMs >= requiredMs &&
+                            durationMs >= (requiredMs * 9L / 10L)
+                    )
                     val location = bestEffortLocation()
                     val inspected = validation.inspected
 
@@ -456,7 +508,31 @@ class GuidedCaptureViewModel(
                         _state.update {
                             it.copy(
                                 phase = GuidedCapturePhase.ERROR,
-                                errorMessage = "Failed to write clip metadata JSON."
+                                errorMessage = "Failed to write clip metadata JSON.",
+                                keepEligible = false
+                            )
+                        }
+                        return@launch
+                    }
+
+                    if (!durationSatisfied) {
+                        // Early / short take: never KEEP. Offer retake only.
+                        _state.update {
+                            it.copy(
+                                phase = GuidedCapturePhase.INSUFFICIENT_DURATION,
+                                lastRecordedFile = ready.videoFile.absolutePath,
+                                lastRecordedThumbnail = if (thumbOk) ready.thumbFile.absolutePath else null,
+                                lastRecommendation = Recommendation.RETAKE,
+                                lastQualityPercent = 0,
+                                keepEligible = false,
+                                durationSatisfied = false,
+                                recordedDurationMs = durationMs,
+                                targetDurationMs = requiredMs,
+                                insufficientDurationMessage = GuidedCaptureDurationGate.insufficientDurationMessage(
+                                    requiredDurationMs = requiredMs,
+                                    actualDurationMs = durationMs
+                                ),
+                                completedClips = it.completedClips + metadata
                             )
                         }
                         return@launch
@@ -469,13 +545,30 @@ class GuidedCaptureViewModel(
                             isDuplicate = false
                         )
                     }
+                    val recommendation = GuidedCaptureDurationGate.resolveRecommendation(
+                        mediaType = GuidedClipMediaType.VIDEO,
+                        requiredDurationMs = requiredMs,
+                        actualDurationMs = durationMs,
+                        qualityRecommendation = quality.recommendation
+                    )
+                    val keepEligible = GuidedCaptureDurationGate.isKeepEligible(
+                        mediaType = GuidedClipMediaType.VIDEO,
+                        requiredDurationMs = requiredMs,
+                        actualDurationMs = durationMs,
+                        qualityRecommendation = recommendation
+                    )
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.REVIEW,
                             lastRecordedFile = ready.videoFile.absolutePath,
                             lastRecordedThumbnail = if (thumbOk) ready.thumbFile.absolutePath else null,
-                            lastRecommendation = quality.recommendation,
+                            lastRecommendation = recommendation,
                             lastQualityPercent = (quality.score * 100).toInt().coerceIn(0, 100),
+                            keepEligible = keepEligible,
+                            durationSatisfied = true,
+                            recordedDurationMs = durationMs,
+                            targetDurationMs = requiredMs,
+                            insufficientDurationMessage = null,
                             completedClips = it.completedClips + metadata
                         )
                     }
@@ -557,6 +650,12 @@ class GuidedCaptureViewModel(
                             isDuplicate = false
                         )
                     }
+                    val keepEligible = GuidedCaptureDurationGate.isKeepEligible(
+                        mediaType = GuidedClipMediaType.PHOTO,
+                        requiredDurationMs = 0L,
+                        actualDurationMs = 0L,
+                        qualityRecommendation = quality.recommendation
+                    )
                     _state.update {
                         it.copy(
                             phase = GuidedCapturePhase.REVIEW,
@@ -564,6 +663,10 @@ class GuidedCaptureViewModel(
                             lastRecordedThumbnail = file.absolutePath,
                             lastRecommendation = quality.recommendation,
                             lastQualityPercent = (quality.score * 100).toInt().coerceIn(0, 100),
+                            keepEligible = keepEligible,
+                            durationSatisfied = true,
+                            recordedDurationMs = 0L,
+                            insufficientDurationMessage = null,
                             completedClips = it.completedClips + metadata
                         )
                     }
@@ -589,6 +692,8 @@ class GuidedCaptureViewModel(
             clips[index] = current.copy(takeIndex = current.takeIndex + 1)
             tpl.copy(clips = clips)
         }
+        videoStopMetRequiredDuration = false
+        pendingRequiredDurationMs = 0L
         _state.update {
             it.copy(
                 template = bumped ?: it.template,
@@ -598,6 +703,10 @@ class GuidedCaptureViewModel(
                 lastRecordedThumbnail = null,
                 lastRecommendation = null,
                 lastQualityPercent = 0,
+                keepEligible = false,
+                durationSatisfied = false,
+                recordedDurationMs = 0L,
+                insufficientDurationMessage = null,
                 completedClips = it.completedClips.dropLast(1),
                 liveGuidance = GuidedLiveGuidance(
                     requestedZoom = it.currentClip?.requestedZoomRatio() ?: 1.0f,
@@ -609,15 +718,25 @@ class GuidedCaptureViewModel(
         }
     }
 
-    /** Accepts the last captured clip and advances to the next clip, or COMPLETE if this was the last. */
+    /**
+     * Accepts the last captured clip and advances.
+     * Blocked when KEEP is not eligible (e.g. insufficient video duration).
+     */
     fun acceptAndAdvance() {
         val state = _state.value
+        if (state.phase == GuidedCapturePhase.INSUFFICIENT_DURATION) return
+        if (state.currentClip?.mediaType == GuidedClipMediaType.VIDEO && !state.durationSatisfied) return
+        // KEEP action requires keepEligible; REVIEW/NEXT still allowed when duration was met.
+        if (state.lastRecommendation == Recommendation.KEEP && !state.keepEligible) return
+
         if (state.isLastClip) {
             _state.update {
                 it.copy(
                     phase = GuidedCapturePhase.COMPLETE,
                     lastRecommendation = null,
-                    lastQualityPercent = 0
+                    lastQualityPercent = 0,
+                    keepEligible = false,
+                    insufficientDurationMessage = null
                 )
             }
         } else {
@@ -632,6 +751,10 @@ class GuidedCaptureViewModel(
                     lastRecordedThumbnail = null,
                     lastRecommendation = null,
                     lastQualityPercent = 0,
+                    keepEligible = false,
+                    durationSatisfied = false,
+                    recordedDurationMs = 0L,
+                    insufficientDurationMessage = null,
                     liveGuidance = GuidedLiveGuidance(
                         requestedZoom = nextClip?.requestedZoomRatio() ?: 1.0f,
                         message = nextClip?.guidanceHint

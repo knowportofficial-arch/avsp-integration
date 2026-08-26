@@ -8,6 +8,8 @@ enum class GuidedCapturePhase {
     READY,
     COUNTDOWN,
     RECORDING,
+    /** Video stopped before shot-plan required duration — KEEP must not be offered. */
+    INSUFFICIENT_DURATION,
     REVIEW,
     SAVING,
     ERROR,
@@ -51,6 +53,15 @@ data class GuidedCaptureState(
     /** Post-capture M7 recommendation shown in REVIEW (KEEP / REVIEW / RETAKE). */
     val lastRecommendation: Recommendation? = null,
     val lastQualityPercent: Int = 0,
+
+    /**
+     * KEEP may be offered only when the shot-plan duration was met and quality says KEEP.
+     * False during recording and for early / short video takes.
+     */
+    val keepEligible: Boolean = false,
+    val durationSatisfied: Boolean = false,
+    val recordedDurationMs: Long = 0L,
+    val insufficientDurationMessage: String? = null,
 
     val liveGuidance: GuidedLiveGuidance = GuidedLiveGuidance(),
 

@@ -284,6 +284,17 @@ fun GuidedCaptureScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
+            if (state.phase == GuidedCapturePhase.INSUFFICIENT_DURATION) {
+                Text(
+                    text = state.insufficientDurationMessage
+                        ?: "Insufficient duration — retake required.",
+                    color = Rose500,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -299,6 +310,7 @@ fun GuidedCaptureScreen(
                         ) {}
                     }
                     GuidedCapturePhase.RECORDING -> {
+                        // Stop only — KEEP must never appear while the duration timer is active.
                         Button(
                             onClick = { viewModel.stopRecording() },
                             colors = ButtonDefaults.buttonColors(containerColor = Rose500),
@@ -309,6 +321,16 @@ fun GuidedCaptureScreen(
                     GuidedCapturePhase.COUNTDOWN -> {
                         OutlinedButton(onClick = { viewModel.cancelCountdown() }) { Text("Cancel") }
                     }
+                    GuidedCapturePhase.INSUFFICIENT_DURATION -> {
+                        OutlinedButton(
+                            onClick = { viewModel.retake() },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Rose500)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Retake")
+                            Spacer(Modifier.width(6.dp))
+                            Text("RETAKE")
+                        }
+                    }
                     GuidedCapturePhase.REVIEW -> {
                         OutlinedButton(
                             onClick = { viewModel.retake() },
@@ -318,22 +340,37 @@ fun GuidedCaptureScreen(
                             Spacer(Modifier.width(6.dp))
                             Text("RETAKE")
                         }
-                        Button(
-                            onClick = { viewModel.acceptAndAdvance() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                        // KEEP only when duration was met and quality recommends KEEP.
+                        // REVIEW / NEXT remain available for non-KEEP recommendations after a valid take.
+                        if (state.keepEligible) {
+                            Button(
+                                onClick = { viewModel.acceptAndAdvance() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Keep")
+                                Spacer(Modifier.width(6.dp))
+                                Text(if (state.isLastClip) "KEEP · FINISH" else "KEEP · NEXT")
+                            }
+                        } else if (state.durationSatisfied &&
+                            state.lastRecommendation != Recommendation.RETAKE
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "Keep")
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                when {
-                                    state.lastRecommendation == Recommendation.KEEP && state.isLastClip -> "KEEP · FINISH"
-                                    state.lastRecommendation == Recommendation.KEEP -> "KEEP · NEXT"
-                                    state.lastRecommendation == Recommendation.REVIEW && state.isLastClip -> "REVIEW · FINISH"
-                                    state.lastRecommendation == Recommendation.REVIEW -> "REVIEW · NEXT"
-                                    state.isLastClip -> "FINISH"
-                                    else -> "NEXT"
-                                }
-                            )
+                            Button(
+                                onClick = { viewModel.acceptAndAdvance() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Accept")
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    when {
+                                        state.lastRecommendation == Recommendation.REVIEW && state.isLastClip ->
+                                            "REVIEW · FINISH"
+                                        state.lastRecommendation == Recommendation.REVIEW ->
+                                            "REVIEW · NEXT"
+                                        state.isLastClip -> "FINISH"
+                                        else -> "NEXT"
+                                    }
+                                )
+                            }
                         }
                     }
                     GuidedCapturePhase.SAVING -> {
