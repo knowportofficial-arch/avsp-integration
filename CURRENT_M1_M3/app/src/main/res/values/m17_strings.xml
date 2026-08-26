@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="m17_ai_auto">AI AUTO</string>
+    <string name="m17_ai_shot">AI SHOT</string>
+    <string name="m17_manual">MANUAL</string>
+    <string name="m17_shot_list">SHOT LIST</string>
+    <string name="m17_voice_mute">Mute voice guidance</string>
+    <string name="m17_voice_unmute">Unmute voice guidance</string>
+    <string name="m17_photo">PHOTO</string>
+    <string name="m17_video">VIDEO</string>
+    <string name="m17_manual_extra">Manual Extra</string>
+    <string name="m17_pending">Pending</string>
+    <string name="m17_captured">Captured</string>
+    <string name="m17_skipped">Skipped</string>
+    <string name="m17_retake">Retake</string>
+</resources>
