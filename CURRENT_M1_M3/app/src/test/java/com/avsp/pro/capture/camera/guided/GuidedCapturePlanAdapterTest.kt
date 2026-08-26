@@ -35,6 +35,16 @@ class GuidedCapturePlanAdapterTest {
             assertThat(instruction).contains(clip.framingType.description)
             // Framing codes are technical; semantic title stays primary
             assertThat(clip.clipName).isNotEqualTo(clip.framingType.displayName)
+            when (clip.mediaType) {
+                GuidedClipMediaType.PHOTO -> {
+                    assertThat(instruction).contains(" · Photo · ")
+                    assertThat(Regex("""· \d+s ·""").containsMatchIn(instruction)).isFalse()
+                }
+                GuidedClipMediaType.VIDEO -> {
+                    assertThat(Regex("""· \d+s ·""").containsMatchIn(instruction)).isTrue()
+                    assertThat(instruction).doesNotContain(" · Photo · ")
+                }
+            }
         }
     }
 

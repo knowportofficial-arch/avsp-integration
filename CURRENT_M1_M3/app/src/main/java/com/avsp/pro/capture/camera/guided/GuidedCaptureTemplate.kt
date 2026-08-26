@@ -52,12 +52,14 @@ data class GuidedClipSpec(
 
     /**
      * Preserved Guided Capture naming using existing CameraShotType descriptions only.
+     * VIDEO includes duration seconds; PHOTO shows "Photo" (never a fake Ns video cue).
      */
     fun captureInstruction(): String = GuidedCaptureShotNaming.format(
         semanticName = clipName,
         shotCode = category,
         durationSeconds = targetDurationSeconds,
-        framing = framingType
+        framing = framingType,
+        mediaType = mediaType
     )
 
     /** Zoom ratio requested from the existing CameraShotType contract. */

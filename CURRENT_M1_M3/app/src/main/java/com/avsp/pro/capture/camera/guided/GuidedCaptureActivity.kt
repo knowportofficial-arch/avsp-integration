@@ -28,11 +28,13 @@ import java.io.File
  *
  * When [EXTRA_PROJECT_ID] is supplied:
  * 1. Loads the Pro project name/description
- * 2. Builds a real [MasterShotPlan] via [LocalShotPlanner] (full shot sequence)
- * 3. Adapts it into Guided Capture clips with preserved semantic naming
- * 4. Registers completed clips into Media Library with mission/shot identity
+ * 2. Builds a [MasterShotPlan] via [LocalShotPlanner]
+ * 3. Adapts it when the plan contains at least one VIDEO (PHOTO/VIDEO preserved)
+ * 4. Otherwise uses explicit [GuidedCapturePlanAdapter.fromSampleFallback]
+ *    (Intro/Wide/Medium/Close all VIDEO — V2 behavior)
+ * 5. Registers completed clips into Media Library with mission/shot identity
  *
- * Falls back to [GuidedCaptureTemplate.sample] only when no project context is available.
+ * Falls back to sample also when no project context is available.
  */
 class GuidedCaptureActivity : ComponentActivity() {
 
@@ -98,8 +100,9 @@ class GuidedCaptureActivity : ComponentActivity() {
                     }
                 }
                 val plan = LocalShotPlanner().createPlan(request)
+                // Mixed plans keep PHOTO/VIDEO. PHOTO-only plans → explicit V2 sample VIDEO.
                 SessionLoadState.Ready(
-                    session = GuidedCapturePlanAdapter.fromMasterShotPlan(plan),
+                    session = GuidedCapturePlanAdapter.fromMasterShotPlanOrSampleFallback(plan),
                     planContext = request
                 )
             }

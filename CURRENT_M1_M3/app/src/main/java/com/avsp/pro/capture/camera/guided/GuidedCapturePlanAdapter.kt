@@ -20,7 +20,12 @@ import com.avsp.pro.capture.camera.planner.ShotMissionPlanAdapter
  * without inventing semantic names or descriptions.
  *
  * Naming contract preserved via [GuidedClipSpec.captureInstruction]:
- *   "{title} · {CODE} · {Ns} · {Framing} ({existing framing description})"
+ *   VIDEO: "{title} · {CODE} · {Ns} · {Framing} ({existing framing description})"
+ *   PHOTO: "{title} · {CODE} · Photo · {Framing} ({existing framing description})"
+ *
+ * Session selection:
+ * - Real mixed plans (at least one VIDEO) → adapt planner media types faithfully.
+ * - PHOTO-only / empty plans → explicit [fromSampleFallback] (V2 Intro/Wide/Medium/Close all VIDEO).
  */
 object GuidedCapturePlanAdapter {
 
@@ -28,8 +33,27 @@ object GuidedCapturePlanAdapter {
         val template: GuidedCaptureTemplate,
         val mission: ShotMission,
         val planId: String,
-        val planTitle: String
+        val planTitle: String,
+        /** True when [fromSampleFallback] was used instead of a project plan. */
+        val usedSampleFallback: Boolean = false
     )
+
+    /**
+     * Prefer a real plan when it contains at least one VIDEO shot (mixed PHOTO/VIDEO OK).
+     * Otherwise use the explicit V2 sample fallback — do not silently rewrite PHOTO→VIDEO
+     * inside a photo-only plan.
+     */
+    fun fromMasterShotPlanOrSampleFallback(
+        plan: MasterShotPlan,
+        aspectRatio: CameraAspectRatio = CameraAspectRatio.PORTRAIT_9_16,
+        orientation: CaptureOrientation = CaptureOrientation.PORTRAIT
+    ): GuidedSession {
+        val hasVideo = plan.shots.any { it.mediaType == PlannedMediaType.VIDEO }
+        if (!hasVideo) {
+            return fromSampleFallback()
+        }
+        return fromMasterShotPlan(plan, aspectRatio, orientation)
+    }
 
     fun fromMasterShotPlan(
         plan: MasterShotPlan,
@@ -56,7 +80,8 @@ object GuidedCapturePlanAdapter {
             template = template,
             mission = mission,
             planId = plan.id,
-            planTitle = plan.title
+            planTitle = plan.title,
+            usedSampleFallback = false
         )
     }
 
@@ -89,17 +114,22 @@ object GuidedCapturePlanAdapter {
                 currentShotIndex = 0
             ),
             planId = mission.id,
-            planTitle = mission.title
+            planTitle = mission.title,
+            usedSampleFallback = false
         )
     }
 
     /**
-     * Sample-template fallback when no project context is available.
+     * Sample-template fallback when no project context is available, or when the
+     * project plan has no VIDEO shots (not a usable mixed Guided Capture plan).
      * Preserves Intro · INTRO · 5s · Wide (Establishing…) naming — never replaces
-     * semantic names with framing-only labels.
+     * semantic names with framing-only labels. All four clips are VIDEO (V2 behavior).
      */
     fun fromSampleFallback(): GuidedSession {
         val template = GuidedCaptureTemplate.sample()
+        require(template.clips.all { it.mediaType == GuidedClipMediaType.VIDEO }) {
+            "sample() must remain all-VIDEO for V2 Guided Capture fallback"
+        }
         val mission = ShotMission(
             id = template.templateId,
             title = template.templateName,
@@ -111,11 +141,7 @@ object GuidedCapturePlanAdapter {
                     title = clip.clipName,
                     description = clip.framingType.description,
                     shotType = clip.framingType,
-                    mediaType = if (clip.mediaType == GuidedClipMediaType.VIDEO) {
-                        ShotMediaType.VIDEO
-                    } else {
-                        ShotMediaType.PHOTO
-                    },
+                    mediaType = ShotMediaType.VIDEO,
                     preferredFrameRate = clip.frameRate,
                     preferredResolution = clip.resolution,
                     subjectHint = clip.subjectHint,
@@ -129,7 +155,8 @@ object GuidedCapturePlanAdapter {
             template = template,
             mission = mission,
             planId = template.templateId,
-            planTitle = template.templateName
+            planTitle = template.templateName,
+            usedSampleFallback = true
         )
     }
 
@@ -146,7 +173,9 @@ object GuidedCapturePlanAdapter {
             clipId = shot.id.ifBlank { "shot_$sequence" },
             clipName = shot.title.trim().ifBlank { "Shot $sequence" },
             category = shotCodeFor(shot.framing, sequence),
-            targetDurationSeconds = if (isVideo) 8 else 5,
+            // VIDEO duration for recording; PHOTO keeps a positive placeholder but naming
+            // shows "Photo" — never a fake video "5s" cue.
+            targetDurationSeconds = if (isVideo) 8 else 1,
             aspectRatio = aspectRatio,
             orientation = orientation,
             resolution = CameraResolution.FULL_HD_1080,
@@ -174,7 +203,7 @@ object GuidedCapturePlanAdapter {
             clipId = item.id,
             clipName = item.title.trim().ifBlank { "Shot ${item.sequenceNumber}" },
             category = item.shotType.name,
-            targetDurationSeconds = if (isVideo) 8 else 5,
+            targetDurationSeconds = if (isVideo) 8 else 1,
             aspectRatio = aspectRatio,
             orientation = orientation,
             resolution = item.preferredResolution,

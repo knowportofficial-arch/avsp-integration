@@ -6,12 +6,15 @@ import com.avsp.pro.capture.camera.mission.ShotMissionItem
 /**
  * Preserved Guided Capture / shot-plan naming contract.
  *
- * Canonical format (do not redesign):
+ * VIDEO (canonical):
  *   "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
  *
- * - [semanticName] / [shotCode] come from existing shot-plan / template data
- *   (e.g. Intro, Scene 1, Patriotic, Established — never invent replacements).
+ * PHOTO (no fake video duration):
+ *   "Entrance · WIDE · Photo · Wide (Establishing, environment & landscape shot)"
+ *
+ * - [semanticName] / [shotCode] come from existing shot-plan / template data.
  * - WIDE / MEDIUM / CLOSE ([framing]) remain technical framing only.
+ * - Duration seconds are shown only for VIDEO clips.
  */
 object GuidedCaptureShotNaming {
 
@@ -19,9 +22,15 @@ object GuidedCaptureShotNaming {
         semanticName: String,
         shotCode: String,
         durationSeconds: Int,
-        framing: CameraShotType
-    ): String =
-        "$semanticName · $shotCode · ${durationSeconds}s · ${framing.displayName} (${framing.description})"
+        framing: CameraShotType,
+        mediaType: GuidedClipMediaType = GuidedClipMediaType.VIDEO
+    ): String {
+        val durationOrPhoto = when (mediaType) {
+            GuidedClipMediaType.VIDEO -> "${durationSeconds}s"
+            GuidedClipMediaType.PHOTO -> "Photo"
+        }
+        return "$semanticName · $shotCode · $durationOrPhoto · ${framing.displayName} (${framing.description})"
+    }
 
     /**
      * Mission-shot variant when an explicit target duration is not on the item.

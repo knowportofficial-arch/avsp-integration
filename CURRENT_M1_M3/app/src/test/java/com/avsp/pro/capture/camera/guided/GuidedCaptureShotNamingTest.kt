@@ -44,4 +44,34 @@ class GuidedCaptureShotNamingTest {
         assertThat(formatted).startsWith("Cooking setup · WIDE ·")
         assertThat(formatted).doesNotContain("Wide · WIDE · Wide")
     }
+
+    @Test
+    fun photoNamingShowsPhotoNotFakeVideoDuration() {
+        assertThat(
+            GuidedCaptureShotNaming.format(
+                semanticName = "Entrance",
+                shotCode = "WIDE",
+                durationSeconds = 5,
+                framing = CameraShotType.WIDE,
+                mediaType = GuidedClipMediaType.PHOTO
+            )
+        ).isEqualTo(
+            "Entrance · WIDE · Photo · Wide (Establishing, environment & landscape shot)"
+        )
+    }
+
+    @Test
+    fun videoNamingStillShowsDurationSeconds() {
+        assertThat(
+            GuidedCaptureShotNaming.format(
+                semanticName = "Intro",
+                shotCode = "INTRO",
+                durationSeconds = 5,
+                framing = CameraShotType.WIDE,
+                mediaType = GuidedClipMediaType.VIDEO
+            )
+        ).isEqualTo(
+            "Intro · INTRO · 5s · Wide (Establishing, environment & landscape shot)"
+        )
+    }
 }
