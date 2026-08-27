@@ -2,21 +2,23 @@ package com.avsp.pro.audio.integration
 
 import com.avsp.pro.audio.contract.AudioPackage
 import com.avsp.pro.audio.contract.AudioSegment
+import com.avsp.pro.audio.contract.AudioSegmentStatus
 
 /**
  * M3 → M4 integration contract.
- * M4 Video Engine consumes audio segment references + timing — M3 does NOT render video.
+ * M4 Video Engine consumes deterministic clip timeline metadata — M3 does NOT render video.
  */
-data class VideoAudioSegmentRef(
-    val segmentId: String,
-    val sceneId: String,
+data class VideoAudioClipRef(
+    val clipId: String,
+    val sceneId: String?,
+    val type: String,
     val order: Int,
-    val relativeAudioPath: String,
-    val startMs: Long,
-    val endMs: Long,
-    val durationMs: Long,
+    val text: String,
+    val voiceId: String,
     val language: String,
-    val voiceId: String
+    val audioUri: String,
+    val durationMs: Long,
+    val status: String
 )
 
 data class AudioToVideoHandoff(
@@ -27,9 +29,16 @@ data class AudioToVideoHandoff(
     val provider: String,
     val voiceId: String,
     val totalDurationMs: Long,
-    val segments: List<VideoAudioSegmentRef>,
-    val audioPackageVersion: String
-)
+    val targetDurationMs: Long,
+    val actualNarrationDurationMs: Long,
+    val durationDeltaMs: Long,
+    val clips: List<VideoAudioClipRef>,
+    val audioPackageVersion: String,
+    val packageStatus: String
+) {
+    /** @deprecated use [clips] */
+    val segments: List<VideoAudioClipRef> get() = clips
+}
 
 object AudioToVideoContract {
     fun fromPackage(audio: AudioPackage): AudioToVideoHandoff {
@@ -41,20 +50,31 @@ object AudioToVideoContract {
             provider = audio.provider,
             voiceId = audio.voice.voiceId,
             totalDurationMs = audio.totalDurationMs,
-            segments = audio.segments.sortedBy { it.order }.map { it.toRef(audio.voice.voiceId) },
-            audioPackageVersion = audio.version
+            targetDurationMs = audio.targetDurationMs,
+            actualNarrationDurationMs = audio.actualNarrationDurationMs,
+            durationDeltaMs = audio.durationDeltaMs,
+            clips = audio.segments.sortedBy { it.order }.map { it.toClipRef() },
+            audioPackageVersion = audio.version,
+            packageStatus = audio.status
         )
     }
 
-    private fun AudioSegment.toRef(voiceId: String) = VideoAudioSegmentRef(
-        segmentId = segmentId,
+    private fun AudioSegment.toClipRef() = VideoAudioClipRef(
+        clipId = segmentId,
         sceneId = sceneId,
+        type = role.name,
         order = order,
-        relativeAudioPath = relativeAudioPath,
-        startMs = startMs,
-        endMs = endMs,
-        durationMs = durationMs,
+        text = sourceText,
+        voiceId = voiceId,
         language = language,
-        voiceId = this.voiceId.ifBlank { voiceId }
+        audioUri = relativeAudioPath,
+        durationMs = durationMs,
+        status = when (status) {
+            AudioSegmentStatus.READY, AudioSegmentStatus.GENERATED -> "READY"
+            AudioSegmentStatus.STALE -> "STALE"
+            AudioSegmentStatus.FAILED -> "FAILED"
+            AudioSegmentStatus.GENERATING -> "GENERATING"
+            else -> "NOT_GENERATED"
+        }
     )
 }

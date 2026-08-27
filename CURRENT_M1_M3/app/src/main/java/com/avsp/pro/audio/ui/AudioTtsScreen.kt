@@ -224,7 +224,11 @@ private fun AudioPackagePanel(
         Text("Audio package", style = MaterialTheme.typography.titleLarge)
         Text("Mode: ${audio.voice.voiceMode.name.replace('_', ' ')}")
         Text("Total duration: ${audio.totalDurationMs}ms")
+        if (audio.targetDurationMs > 0) {
+            Text("Target: ${audio.targetDurationMs}ms · Actual: ${audio.actualNarrationDurationMs}ms · Δ ${audio.durationDeltaMs}ms")
+        }
         Text("Status: ${audio.status}")
+        Text("Clips: ${audio.segments.size} (${audio.playableSegments.size} ready)")
         Text(
             "Format: ${audio.metadata.format.format} ${audio.metadata.format.sampleRateHz}Hz",
             style = MaterialTheme.typography.bodySmall

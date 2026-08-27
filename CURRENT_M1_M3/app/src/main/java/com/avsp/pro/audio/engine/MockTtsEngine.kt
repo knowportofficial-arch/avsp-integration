@@ -32,9 +32,8 @@ class MockTtsEngine : TtsEngine {
                 "Language unavailable for Mock TTS: ${request.language}"
             )
         }
-        // Duration tracks planned scene timing when provided; otherwise estimate from text.
-        val durationMs = request.targetDurationMs?.coerceAtLeast(250L)
-            ?: max(500L, (request.text.length * 60L))
+        // Natural duration from text length — never stretch to M2 target duration.
+        val durationMs = max(500L, request.text.length * 60L)
         val wav = WavEncoder.synthesizeToneWav(request.text, durationMs)
         val pcmSize = wav.size - 44
         val actualMs = WavEncoder.durationMsForPcmBytes(pcmSize)

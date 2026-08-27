@@ -4,6 +4,7 @@ import com.avsp.pro.audio.contract.AssignmentScope
 import com.avsp.pro.audio.contract.AudioFormatInfo
 import com.avsp.pro.audio.contract.AudioGenerationRequest
 import com.avsp.pro.audio.contract.AudioPackage
+import com.avsp.pro.audio.contract.AudioPackageStatus
 import com.avsp.pro.audio.contract.AudioPackageMetadata
 import com.avsp.pro.audio.contract.AudioSegment
 import com.avsp.pro.audio.contract.AudioSegmentStatus
@@ -94,6 +95,7 @@ class AudioRepositoryImpl(
             gson.toJson(saved),
             config.projectId
         )
+        markVoiceAssignmentStaleIfNeeded(config.projectId, saved)
         return saved
     }
 
@@ -120,13 +122,12 @@ class AudioRepositoryImpl(
         var cursor = 0L
         val now = System.currentTimeMillis()
 
-        plan.items.forEachIndexed { index, item ->
+        plan.items.forEach { item ->
             val assignment = VoiceAssignmentResolver.resolve(item, voiceConfig)
             val segment = synthesizePlanItem(
                 projectId = request.projectId,
                 audioPackageId = audioPackageId,
                 item = item,
-                index = index,
                 assignment = assignment,
                 voiceConfig = voiceConfig,
                 cursorStart = cursor,
@@ -144,13 +145,14 @@ class AudioRepositoryImpl(
             language = plan.language,
             voiceConfig = voiceConfig,
             scriptVersion = plan.scriptVersion,
+            targetDurationMs = plan.targetDurationMs,
             segments = segments,
             driftWarnings = driftWarnings,
             generatedAt = now
         )
     }
 
-    override     suspend fun regenerateSegment(projectId: String, segmentId: String): AudioPackage {
+    override suspend fun regenerateSegment(projectId: String, segmentId: String): AudioPackage {
         val existing = load(projectId) ?: throw AudioException(
             AudioErrorCode.INVALID_INPUT,
             "No audio package to regenerate"
@@ -161,8 +163,7 @@ class AudioRepositoryImpl(
         val voiceConfig = existing.voiceConfiguration ?: loadVoiceConfiguration(projectId)
         val target = existing.segments.find { it.segmentId == segmentId }
             ?: throw AudioException(AudioErrorCode.INVALID_INPUT, "Unknown segment: $segmentId")
-        val planItem = plan.items.find { it.segmentKey == target.sceneId }
-            ?: plan.items.find { segmentFileName(it) == segmentId }
+        val planItem = plan.items.find { it.clipId == segmentId }
             ?: throw AudioException(AudioErrorCode.INVALID_INPUT, "Plan item missing for $segmentId")
 
         val assignment = VoiceAssignmentResolver.resolve(planItem, voiceConfig)
@@ -171,7 +172,6 @@ class AudioRepositoryImpl(
             projectId = projectId,
             audioPackageId = existing.audioPackageId,
             item = planItem,
-            index = index,
             assignment = assignment,
             voiceConfig = voiceConfig,
             cursorStart = target.startMs,
@@ -202,6 +202,9 @@ class AudioRepositoryImpl(
                 introAudio = retimed.find { it.role == SegmentRole.INTRO },
                 outroAudio = retimed.find { it.role == SegmentRole.OUTRO },
                 totalDurationMs = retimed.sumOf { it.durationMs },
+                actualNarrationDurationMs = retimed.sumOf { it.durationMs },
+                durationDeltaMs = existing.targetDurationMs - retimed.sumOf { it.durationMs },
+                status = AudioPackageStatus.fromSegments(retimed),
                 voiceConfiguration = voiceConfig,
                 metadata = existing.metadata.copy(
                     updatedAt = System.currentTimeMillis(),
@@ -215,29 +218,37 @@ class AudioRepositoryImpl(
         val existing = load(projectId) ?: return null
         val script = scriptRepository.load(projectId) ?: return existing
         val plan = M3ScriptAudioPlan.fromScript(script)
-        val planByKey = plan.items.associateBy { it.segmentKey }
+        val planByClipId = plan.items.associateBy { it.clipId }
+        val voiceConfig = existing.voiceConfiguration ?: loadVoiceConfiguration(projectId)
+
         val refreshed = existing.segments.map { seg ->
-            val key = when (seg.role) {
-                SegmentRole.INTRO -> "intro"
-                SegmentRole.OUTRO -> "outro"
-                else -> seg.sceneId
-            }
-            val current = planByKey[key]
-            if (current != null &&
-                seg.sourceTextHash.isNotBlank() &&
-                seg.sourceTextHash != current.sourceTextHash &&
-                seg.status == AudioSegmentStatus.READY
-            ) {
-                seg.copy(status = AudioSegmentStatus.STALE)
+            val item = planByClipId[seg.segmentId]
+            if (item == null) {
+                if (seg.status == AudioSegmentStatus.READY) {
+                    seg.copy(status = AudioSegmentStatus.STALE)
+                } else {
+                    seg
+                }
             } else {
-                seg
+                val assignment = VoiceAssignmentResolver.resolve(item, voiceConfig)
+                val assignmentHash = VoiceAssignmentResolver.assignmentHash(assignment)
+                val textStale = seg.sourceTextHash.isNotBlank() &&
+                    seg.sourceTextHash != item.sourceTextHash
+                val voiceStale = seg.voiceAssignmentHash.isNotBlank() &&
+                    seg.voiceAssignmentHash != assignmentHash
+                if ((textStale || voiceStale) && seg.status == AudioSegmentStatus.READY) {
+                    seg.copy(status = AudioSegmentStatus.STALE)
+                } else {
+                    seg
+                }
             }
         }
+
         val updated = existing.copy(
             segments = refreshed,
             introAudio = refreshed.find { it.role == SegmentRole.INTRO },
             outroAudio = refreshed.find { it.role == SegmentRole.OUTRO },
-            status = if (refreshed.any { it.status == AudioSegmentStatus.STALE }) "STALE" else existing.status
+            status = AudioPackageStatus.fromSegments(refreshed)
         )
         return if (updated != existing) save(updated) else existing
     }
@@ -294,11 +305,41 @@ class AudioRepositoryImpl(
     override fun resolveAbsolutePath(projectId: String, relativePath: String): String =
         storage.resolve(StorageArea.PROJECT_DATA, relativePath, projectId)
 
+    private suspend fun markVoiceAssignmentStaleIfNeeded(projectId: String, config: VoiceConfiguration) {
+        val existing = load(projectId) ?: return
+        val script = scriptRepository.load(projectId) ?: return
+        val plan = M3ScriptAudioPlan.fromScript(script)
+        val planByClipId = plan.items.associateBy { it.clipId }
+        val refreshed = existing.segments.map { seg ->
+            val item = planByClipId[seg.segmentId] ?: return@map seg
+            val assignment = VoiceAssignmentResolver.resolve(item, config)
+            val assignmentHash = VoiceAssignmentResolver.assignmentHash(assignment)
+            if (seg.voiceAssignmentHash.isNotBlank() &&
+                seg.voiceAssignmentHash != assignmentHash &&
+                seg.status == AudioSegmentStatus.READY
+            ) {
+                seg.copy(status = AudioSegmentStatus.STALE)
+            } else {
+                seg
+            }
+        }
+        if (refreshed != existing.segments) {
+            save(
+                existing.copy(
+                    segments = refreshed,
+                    introAudio = refreshed.find { it.role == SegmentRole.INTRO },
+                    outroAudio = refreshed.find { it.role == SegmentRole.OUTRO },
+                    status = AudioPackageStatus.fromSegments(refreshed),
+                    voiceConfiguration = config
+                )
+            )
+        }
+    }
+
     private suspend fun synthesizePlanItem(
         projectId: String,
         audioPackageId: String,
         item: M3AudioPlanItem,
-        index: Int,
         assignment: com.avsp.pro.audio.contract.SegmentVoiceAssignment,
         voiceConfig: VoiceConfiguration,
         cursorStart: Long,
@@ -350,15 +391,15 @@ class AudioRepositoryImpl(
             voiceMode = assignment.voiceMode
         )
 
-        val segmentId = segmentFileName(item)
-        val relative = relativeAudioPath ?: "${ProjectPaths.AUDIO}/$audioPackageId/$segmentId.wav"
+        val clipId = item.clipId
+        val relative = relativeAudioPath ?: "${ProjectPaths.AUDIO}/$audioPackageId/$clipId.wav"
 
         val result = engine.synthesize(
             TtsSynthesisRequest(
                 text = item.narration,
                 language = language,
                 voice = voice,
-                targetDurationMs = item.plannedDurationMs
+                targetDurationMs = null
             )
         )
         try {
@@ -366,7 +407,7 @@ class AudioRepositoryImpl(
         } catch (e: Exception) {
             throw AudioException(
                 AudioErrorCode.AUDIO_STORAGE_FAILED,
-                "Failed to store audio segment $segmentId",
+                "Failed to store audio segment $clipId",
                 details = e.message,
                 cause = e
             )
@@ -379,9 +420,11 @@ class AudioRepositoryImpl(
             driftWarnings += "${item.segmentKey}: actual ${durationMs}ms vs planned ${planned}ms"
         }
 
+        val assignmentHash = VoiceAssignmentResolver.assignmentHash(assignment)
+
         return AudioSegment(
-            segmentId = segmentId,
-            sceneId = item.sceneId,
+            segmentId = clipId,
+            sceneId = item.sceneId ?: item.segmentKey,
             order = item.order,
             role = item.role,
             title = item.title,
@@ -398,7 +441,8 @@ class AudioRepositoryImpl(
             status = AudioSegmentStatus.READY,
             plannedDurationMs = planned,
             durationDeltaMs = delta,
-            generatedAt = generatedAt
+            generatedAt = generatedAt,
+            voiceAssignmentHash = assignmentHash
         )
     }
 
@@ -409,6 +453,7 @@ class AudioRepositoryImpl(
         language: String,
         voiceConfig: VoiceConfiguration,
         scriptVersion: String,
+        targetDurationMs: Long,
         segments: List<AudioSegment>,
         driftWarnings: List<String>,
         generatedAt: Long
@@ -425,6 +470,9 @@ class AudioRepositoryImpl(
             providerId = primaryProvider,
             voiceMode = voiceConfig.voiceMode
         )
+        val actualNarrationDurationMs = segments.sumOf { it.durationMs }
+        val durationDeltaMs = targetDurationMs - actualNarrationDurationMs
+        val packageStatus = AudioPackageStatus.fromSegments(segments)
         val draft = AudioPackage(
             projectId = projectId,
             scriptId = scriptId,
@@ -436,9 +484,12 @@ class AudioRepositoryImpl(
             segments = segments,
             introAudio = segments.find { it.role == SegmentRole.INTRO },
             outroAudio = segments.find { it.role == SegmentRole.OUTRO },
-            totalDurationMs = segments.sumOf { it.durationMs },
+            totalDurationMs = actualNarrationDurationMs,
+            targetDurationMs = targetDurationMs,
+            actualNarrationDurationMs = actualNarrationDurationMs,
+            durationDeltaMs = durationDeltaMs,
             generatedAt = generatedAt,
-            status = "READY",
+            status = packageStatus,
             validation = PLACEHOLDER_VALIDATION,
             metadata = AudioPackageMetadata(
                 createdAt = generatedAt,
@@ -458,12 +509,6 @@ class AudioRepositoryImpl(
         return save(draft)
     }
 
-    private fun segmentFileName(item: M3AudioPlanItem): String = when (item.role) {
-        SegmentRole.INTRO -> "intro"
-        SegmentRole.OUTRO -> "outro"
-        else -> "scene_${item.order.toString().padStart(2, '0')}"
-    }
-
     private fun voiceConfigPath() = "${ProjectPaths.AUDIO}/voice_config.json"
 
     private fun normalizeLoadedPackage(audio: AudioPackage): AudioPackage {
@@ -476,11 +521,23 @@ class AudioRepositoryImpl(
                 }
             )
         }
+        val actualNarrationDurationMs = segments.sumOf { it.durationMs }
+        val targetDurationMs = audio.targetDurationMs
+        val durationDeltaMs = if (targetDurationMs > 0) {
+            targetDurationMs - actualNarrationDurationMs
+        } else {
+            audio.durationDeltaMs
+        }
+        val status = AudioPackageStatus.fromSegments(segments)
         return audio.copy(
             version = audio.version.ifBlank { AudioPackage.CURRENT_VERSION },
             segments = segments,
             introAudio = segments.find { it.role == SegmentRole.INTRO },
-            outroAudio = segments.find { it.role == SegmentRole.OUTRO }
+            outroAudio = segments.find { it.role == SegmentRole.OUTRO },
+            totalDurationMs = actualNarrationDurationMs,
+            actualNarrationDurationMs = actualNarrationDurationMs,
+            durationDeltaMs = durationDeltaMs,
+            status = status
         )
     }
 

@@ -11,6 +11,7 @@ enum class VoiceMode {
 
 enum class SegmentRole {
     INTRO,
+    HOOK,
     BODY,
     OUTRO,
     SCENE

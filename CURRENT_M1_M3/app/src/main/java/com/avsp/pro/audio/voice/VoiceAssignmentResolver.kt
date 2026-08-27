@@ -18,6 +18,10 @@ object VoiceAssignmentResolver {
         }
         return when (item.role) {
             SegmentRole.INTRO -> config.introAssignment ?: defaultForRole(item, config)
+            SegmentRole.HOOK -> when (config.assignmentScope) {
+                AssignmentScope.INTRO_BODY_OUTRO -> config.introAssignment ?: defaultForRole(item, config)
+                else -> defaultForRole(item, config)
+            }
             SegmentRole.OUTRO -> config.outroAssignment ?: defaultForRole(item, config)
             SegmentRole.BODY, SegmentRole.SCENE -> when (config.assignmentScope) {
                 AssignmentScope.INTRO_BODY_OUTRO -> config.bodyAssignment ?: defaultForRole(item, config)
@@ -44,5 +48,15 @@ object VoiceAssignmentResolver {
     fun defaultProviderForMode(mode: VoiceMode): String = when (mode) {
         VoiceMode.MY_VOICE_CLONE -> VoiceCloneTtsEngine.PROVIDER_ID
         VoiceMode.SIMPLE_LOCAL -> MockTtsEngine.PROVIDER_ID
+    }
+
+    fun assignmentHash(assignment: SegmentVoiceAssignment): String {
+        val raw = listOf(
+            assignment.voiceMode.name,
+            assignment.providerId,
+            assignment.voiceId,
+            assignment.language
+        ).joinToString("|")
+        return raw.hashCode().toUInt().toString(16)
     }
 }

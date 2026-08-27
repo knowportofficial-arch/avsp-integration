@@ -68,6 +68,7 @@ data class AudioSegment(
     val plannedDurationMs: Long? = null,
     val durationDeltaMs: Long? = null,
     val generatedAt: Long? = null,
+    val voiceAssignmentHash: String = "",
     val errorCode: String? = null,
     val errorMessage: String? = null
 )
@@ -97,17 +98,42 @@ data class AudioPackage(
     val introAudio: AudioSegment? = null,
     val outroAudio: AudioSegment? = null,
     val totalDurationMs: Long,
+    val targetDurationMs: Long = 0L,
+    val actualNarrationDurationMs: Long = 0L,
+    val durationDeltaMs: Long = 0L,
     val generatedAt: Long? = null,
-    val status: String = "READY",
+    val status: String = "NOT_GENERATED",
     val validation: AudioValidation,
     val metadata: AudioPackageMetadata
 ) {
     companion object {
-        const val CURRENT_VERSION = "1.1"
+        const val CURRENT_VERSION = "1.2"
     }
+
+    val playableSegments: List<AudioSegment>
+        get() = segments
+            .sortedBy { it.order }
+            .filter { it.status == AudioSegmentStatus.READY && it.relativeAudioPath.isNotBlank() }
 
     val sceneAudio: List<AudioSegment>
         get() = segments.filter { it.role == SegmentRole.SCENE || it.role == SegmentRole.BODY }
+}
+
+object AudioPackageStatus {
+    const val NOT_GENERATED = "NOT_GENERATED"
+    const val GENERATING = "GENERATING"
+    const val READY = "READY"
+    const val FAILED = "FAILED"
+    const val STALE = "STALE"
+
+    fun fromSegments(segments: List<AudioSegment>): String = when {
+        segments.isEmpty() -> NOT_GENERATED
+        segments.any { it.status == AudioSegmentStatus.FAILED } -> FAILED
+        segments.any { it.status == AudioSegmentStatus.STALE } -> STALE
+        segments.any { it.status == AudioSegmentStatus.GENERATING } -> GENERATING
+        segments.all { it.status == AudioSegmentStatus.READY } -> READY
+        else -> NOT_GENERATED
+    }
 }
 
 data class AudioGenerationRequest(

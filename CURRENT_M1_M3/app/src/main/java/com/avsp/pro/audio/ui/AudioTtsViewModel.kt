@@ -198,7 +198,14 @@ class AudioTtsViewModel(
     private fun persistVoiceConfiguration() {
         if (projectId.isBlank()) return
         viewModelScope.launch {
-            runCatching { audioRepository.saveVoiceConfiguration(buildVoiceConfiguration()) }
+            runCatching {
+                val saved = audioRepository.saveVoiceConfiguration(buildVoiceConfiguration())
+                val refreshed = audioRepository.refreshStaleState(projectId)
+                if (refreshed != null) {
+                    _state.value = UiState.Success(refreshed)
+                }
+                saved
+            }
         }
     }
 
@@ -273,10 +280,8 @@ class AudioTtsViewModel(
 
     fun previewEntireAudio() {
         val audio = (_state.value as? UiState.Success)?.data ?: return
-        val paths = audio.segments
-            .sortedBy { it.order }
-            .filter { it.status == AudioSegmentStatus.READY || it.status == AudioSegmentStatus.GENERATED }
-            .map { audioRepository.resolveAbsolutePath(projectId, it.relativeAudioPath) }
+        val playable = audio.playableSegments
+        val paths = playable.map { audioRepository.resolveAbsolutePath(projectId, it.relativeAudioPath) }
         if (paths.isEmpty()) {
             _message.value = "No ready audio clips to preview"
             return

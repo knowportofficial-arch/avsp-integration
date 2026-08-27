@@ -5,7 +5,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.avsp.pro.audio.contract.AssignmentScope
 import com.avsp.pro.audio.contract.AudioGenerationRequest
+import com.avsp.pro.audio.contract.AudioPackageStatus
 import com.avsp.pro.audio.contract.AudioSegmentStatus
+import com.avsp.pro.audio.contract.SegmentRole
+import com.avsp.pro.audio.contract.SegmentVoiceAssignment
 import com.avsp.pro.audio.contract.VoiceConfiguration
 import com.avsp.pro.audio.contract.VoiceMode
 import com.avsp.pro.audio.contract.VoiceSettings
@@ -154,6 +157,33 @@ class M3AudioTtsTest {
         assertThat(audio.provider).isEqualTo(MockTtsEngine.PROVIDER_ID)
         assertThat(audio.segments).hasSize(plan.items.size)
         assertThat(audio.segments.all { it.status == AudioSegmentStatus.READY }).isTrue()
+        assertThat(plan.items.map { it.clipId }).containsExactly(
+            "clip_intro",
+            "clip_hook",
+            "clip_scene_01",
+            "clip_outro"
+        )
+        assertThat(plan.items.map { it.sourceTextHash }.distinct()).hasSize(plan.items.size)
+    }
+
+    @Test
+    fun clipCountMatchesPlayableSegments() = runBlocking {
+        seedScript("prj_clip_count")
+        val audio = generateWithMock("prj_clip_count")
+        assertThat(audio.playableSegments).hasSize(audio.segments.size)
+        assertThat(audio.playableSegments.map { it.segmentId })
+            .containsExactlyElementsIn(audio.segments.sortedBy { it.order }.map { it.segmentId })
+        Unit
+    }
+
+    @Test
+    fun targetAndActualDurationPreserved() = runBlocking {
+        val script = seedScript("prj_duration")
+        val audio = generateWithMock("prj_duration")
+        assertThat(audio.targetDurationMs).isEqualTo(script.targetDurationMs)
+        assertThat(audio.actualNarrationDurationMs).isEqualTo(audio.segments.sumOf { it.durationMs })
+        assertThat(audio.durationDeltaMs).isEqualTo(audio.targetDurationMs - audio.actualNarrationDurationMs)
+        assertThat(audio.actualNarrationDurationMs).isLessThan(audio.targetDurationMs)
     }
 
     @Test
@@ -200,14 +230,28 @@ class M3AudioTtsTest {
     @Test
     fun persistenceAndFileReferences() = runBlocking {
         seedScript("prj_persist_a")
+        val config = VoiceConfiguration(
+            projectId = "prj_persist_a",
+            voiceMode = VoiceMode.SIMPLE_LOCAL,
+            assignmentScope = AssignmentScope.ENTIRE_PROJECT,
+            defaultLanguage = "en",
+            defaultVoiceId = "test-voice",
+            defaultProviderId = MockTtsEngine.PROVIDER_ID
+        )
+        audioRepository.saveVoiceConfiguration(config)
         val generated = generateWithMock("prj_persist_a")
         val loaded = audioRepository.load("prj_persist_a")
         assertThat(loaded).isNotNull()
         assertThat(loaded!!.audioPackageId).isEqualTo(generated.audioPackageId)
+        assertThat(loaded.status).isEqualTo(AudioPackageStatus.READY)
+        val reloadedConfig = audioRepository.loadVoiceConfiguration("prj_persist_a")
+        assertThat(reloadedConfig.defaultVoiceId).isEqualTo("test-voice")
+        assertThat(reloadedConfig.voiceMode).isEqualTo(VoiceMode.SIMPLE_LOCAL)
         generated.segments.forEach { seg ->
             assertThat(
                 storage.exists(StorageArea.PROJECT_DATA, seg.relativeAudioPath, "prj_persist_a")
             ).isTrue()
+            assertThat(seg.durationMs).isGreaterThan(0L)
         }
     }
 
@@ -242,7 +286,7 @@ class M3AudioTtsTest {
     fun narrationChangeMarksStale() = runBlocking {
         val script = seedScript("prj_stale")
         val audio = generateWithMock("prj_stale")
-        val editedScene = script.scenes[1]
+        val editedScene = script.scenes.first { it.shotType.name != "INTRO" && it.shotType.name != "OUTRO" }
         val edited = script.copy(
             scenes = script.scenes.map {
                 if (it.sceneId == editedScene.sceneId) {
@@ -253,8 +297,66 @@ class M3AudioTtsTest {
         scriptRepository.updateEdited(edited)
         val refreshed = audioRepository.refreshStaleState("prj_stale")
         assertThat(refreshed).isNotNull()
-        val staleSeg = refreshed!!.segments.first { it.sceneId == editedScene.sceneId }
+        assertThat(refreshed!!.status).isEqualTo(AudioPackageStatus.STALE)
+        val staleSeg = refreshed.segments.first { it.sceneId == editedScene.sceneId }
         assertThat(staleSeg.status).isEqualTo(AudioSegmentStatus.STALE)
+        val readyCount = refreshed.segments.count { it.status == AudioSegmentStatus.READY }
+        assertThat(readyCount).isEqualTo(refreshed.segments.size - 1)
+    }
+
+    @Test
+    fun staleRegenerationReturnsReady() = runBlocking {
+        val script = seedScript("prj_stale_regen")
+        val audio = generateWithMock("prj_stale_regen")
+        val bodyScene = script.scenes.first { it.shotType.name != "INTRO" && it.shotType.name != "OUTRO" }
+        val edited = script.copy(
+            scenes = script.scenes.map {
+                if (it.sceneId == bodyScene.sceneId) it.copy(narration = it.narration + " NEW") else it
+            }
+        )
+        scriptRepository.updateEdited(edited)
+        val stale = audioRepository.refreshStaleState("prj_stale_regen")!!
+        val staleSeg = stale.segments.first { it.sceneId == bodyScene.sceneId }
+        assertThat(staleSeg.status).isEqualTo(AudioSegmentStatus.STALE)
+        val clipId = stale.segments.first { it.sceneId == bodyScene.sceneId }.segmentId
+        val regenerated = audioRepository.regenerateSegment("prj_stale_regen", clipId)
+        val regenSeg = regenerated.segments.first { it.segmentId == clipId }
+        assertThat(regenSeg.status).isEqualTo(AudioSegmentStatus.READY)
+        assertThat(regenerated.status).isEqualTo(AudioPackageStatus.READY)
+    }
+
+    @Test
+    fun voiceAssignmentChangeMarksStale() = runBlocking {
+        seedScript("prj_voice_stale")
+        generateWithMock("prj_voice_stale")
+        val newConfig = VoiceConfiguration(
+            projectId = "prj_voice_stale",
+            voiceMode = VoiceMode.SIMPLE_LOCAL,
+            assignmentScope = AssignmentScope.ENTIRE_PROJECT,
+            defaultLanguage = "en",
+            defaultVoiceId = "alternate-voice",
+            defaultProviderId = MockTtsEngine.PROVIDER_ID
+        )
+        audioRepository.saveVoiceConfiguration(newConfig)
+        val refreshed = audioRepository.load("prj_voice_stale")!!
+        assertThat(refreshed.segments.all { it.status == AudioSegmentStatus.STALE }).isTrue()
+        assertThat(refreshed.status).isEqualTo(AudioPackageStatus.STALE)
+    }
+
+    @Test
+    fun packageNotReadyWhenAnyClipStale() = runBlocking {
+        val script = seedScript("prj_pkg_stale")
+        generateWithMock("prj_pkg_stale")
+        val bodyScene = script.scenes.first { it.shotType.name != "INTRO" && it.shotType.name != "OUTRO" }
+        scriptRepository.updateEdited(
+            script.copy(
+                scenes = script.scenes.map {
+                    if (it.sceneId == bodyScene.sceneId) it.copy(narration = it.narration + " X") else it
+                }
+            )
+        )
+        val refreshed = audioRepository.refreshStaleState("prj_pkg_stale")!!
+        assertThat(refreshed.status).isNotEqualTo(AudioPackageStatus.READY)
     }
 
     @Test
@@ -332,8 +434,21 @@ class M3AudioTtsTest {
         seedScript("prj_m4")
         val audio = generateWithMock("prj_m4")
         val handoff = AudioToVideoContract.fromPackage(audio)
-        assertThat(handoff.segments).hasSize(audio.segments.size)
+        assertThat(handoff.clips).hasSize(audio.segments.size)
         assertThat(handoff.totalDurationMs).isEqualTo(audio.totalDurationMs)
+        assertThat(handoff.targetDurationMs).isEqualTo(audio.targetDurationMs)
+        assertThat(handoff.actualNarrationDurationMs).isEqualTo(audio.actualNarrationDurationMs)
+        assertThat(handoff.packageStatus).isEqualTo(AudioPackageStatus.READY)
+        val first = handoff.clips.first()
+        assertThat(first.clipId).isEqualTo("clip_intro")
+        assertThat(first.type).isEqualTo(SegmentRole.INTRO.name)
+        assertThat(first.order).isEqualTo(0)
+        assertThat(first.text).isNotEmpty()
+        assertThat(first.voiceId).isNotEmpty()
+        assertThat(first.language).isEqualTo("en")
+        assertThat(first.audioUri).contains("clip_intro.wav")
+        assertThat(first.durationMs).isGreaterThan(0L)
+        assertThat(first.status).isEqualTo("READY")
     }
 
     @Test
