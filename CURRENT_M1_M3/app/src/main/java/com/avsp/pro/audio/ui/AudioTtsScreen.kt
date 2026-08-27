@@ -16,10 +16,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,11 +33,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.avsp.pro.audio.contract.AssignmentScope
 import com.avsp.pro.audio.contract.AudioPackage
+import com.avsp.pro.audio.contract.AudioSegment
+import com.avsp.pro.audio.contract.AudioSegmentStatus
+import com.avsp.pro.audio.contract.VoiceCloneStatus
+import com.avsp.pro.audio.contract.VoiceMode
 import com.avsp.pro.core.ui.UiState
-import com.avsp.pro.settings.ConfigState
 import com.avsp.pro.ui.components.ErrorState
 import com.avsp.pro.ui.components.LoadingState
 
@@ -48,16 +53,15 @@ fun AudioTtsScreen(
 ) {
     val form by viewModel.form.collectAsState()
     val state by viewModel.state.collectAsState()
-    val providers by viewModel.providers.collectAsState()
-    val aiConfig by viewModel.aiConfig.collectAsState()
+    val localVoices by viewModel.localVoices.collectAsState()
+    val cloneProfile by viewModel.cloneProfile.collectAsState()
     val scriptReady by viewModel.scriptReady.collectAsState()
+    val projectTitle by viewModel.projectTitle.collectAsState()
     val message by viewModel.message.collectAsState()
     val playPath by viewModel.playPath.collectAsState()
-    val context = LocalContext.current
 
     LaunchedEffect(projectId) { viewModel.start(projectId) }
 
-    // Preview player — releases on dispose / path change.
     DisposableEffect(playPath) {
         val path = playPath
         var player: MediaPlayer? = null
@@ -65,7 +69,9 @@ fun AudioTtsScreen(
             try {
                 player = MediaPlayer().apply {
                     setDataSource(path)
-                    setOnCompletionListener { viewModel.clearPlayPath() }
+                    setOnCompletionListener {
+                        viewModel.onPreviewCompleted()
+                    }
                     setOnErrorListener { _, _, _ ->
                         viewModel.clearPlayPath()
                         true
@@ -101,32 +107,72 @@ fun AudioTtsScreen(
             Spacer(modifier = Modifier)
         }
 
-        Text(
-            "M3 converts the saved M2 script into scene-aligned audio. Video (M4) is not started automatically.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-
-        Text(
-            "AI/cloud credentials: ${aiConfig.name.replace('_', ' ')}",
-            style = MaterialTheme.typography.titleMedium,
-            color = if (aiConfig == ConfigState.CONFIGURED) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-            }
-        )
-
+        Text("Project: $projectTitle", style = MaterialTheme.typography.titleLarge)
         Text(
             if (scriptReady) "M2 script: available" else "M2 script: SCRIPT_REQUIRED",
-            style = MaterialTheme.typography.titleMedium,
             color = if (scriptReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
         )
 
-        ProviderDropdown(
-            providers = providers,
-            selected = form.providerId,
-            onSelected = viewModel::updateProvider
+        Text("Voice mode", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = form.voiceMode == VoiceMode.SIMPLE_LOCAL,
+                onClick = { viewModel.updateVoiceMode(VoiceMode.SIMPLE_LOCAL) },
+                label = { Text("Simple Local Voice") }
+            )
+            FilterChip(
+                selected = form.voiceMode == VoiceMode.MY_VOICE_CLONE,
+                onClick = { viewModel.updateVoiceMode(VoiceMode.MY_VOICE_CLONE) },
+                label = { Text("My Voice Clone") }
+            )
+        }
+
+        when (form.voiceMode) {
+            VoiceMode.SIMPLE_LOCAL -> {
+                LanguageDropdown(
+                    selected = form.language,
+                    onSelected = viewModel::updateLanguage
+                )
+                VoiceDropdown(
+                    voices = localVoices,
+                    selected = form.voiceId,
+                    onSelected = viewModel::updateVoice
+                )
+            }
+            VoiceMode.MY_VOICE_CLONE -> {
+                if (cloneProfile.status == VoiceCloneStatus.CONFIGURED) {
+                    Text("Profile: ${cloneProfile.displayName}", color = MaterialTheme.colorScheme.primary)
+                    Text("Status: Configured", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    Text(
+                        "My Voice Clone is not configured.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
+        Text("Voice assignment", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = form.assignmentScope == AssignmentScope.ENTIRE_PROJECT,
+                onClick = { viewModel.updateAssignmentScope(AssignmentScope.ENTIRE_PROJECT) },
+                label = { Text("Entire project") }
+            )
+            FilterChip(
+                selected = form.assignmentScope == AssignmentScope.INTRO_BODY_OUTRO,
+                onClick = { viewModel.updateAssignmentScope(AssignmentScope.INTRO_BODY_OUTRO) },
+                label = { Text("Intro / Body / Outro") }
+            )
+        }
+
+        Text("Speech rate: ${"%.1f".format(form.speechRate)}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = form.speechRate,
+            onValueChange = viewModel::updateSpeechRate,
+            valueRange = 0.5f..2.0f,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -136,10 +182,14 @@ fun AudioTtsScreen(
                 modifier = Modifier.weight(1f)
             ) { Text("Generate audio") }
             OutlinedButton(
-                onClick = viewModel::regenerate,
-                enabled = scriptReady,
+                onClick = viewModel::previewEntireAudio,
+                enabled = state is UiState.Success,
                 modifier = Modifier.weight(1f)
-            ) { Text("Regenerate") }
+            ) { Text("Preview entire audio") }
+        }
+
+        if (playPath != null) {
+            TextButton(onClick = viewModel::clearPlayPath) { Text("Stop preview") }
         }
 
         message?.let {
@@ -150,17 +200,14 @@ fun AudioTtsScreen(
         HorizontalDivider()
 
         when (val s = state) {
-            is UiState.Idle -> Text(
-                "Generate audio after an M2 script is saved for this project.",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            is UiState.Idle -> Text("Generate audio after an M2 script is saved for this project.")
             is UiState.Loading -> LoadingState("Generating audio…")
             is UiState.Error -> ErrorState(s.message, onRetry = viewModel::generate)
             is UiState.Success -> AudioPackagePanel(
                 audio = s.data,
-                playing = playPath != null,
+                statusLabel = viewModel::segmentStatusLabel,
                 onPreview = viewModel::previewSegment,
-                onStop = viewModel::clearPlayPath
+                onRegenerate = viewModel::regenerateSegment
             )
         }
     }
@@ -169,78 +216,122 @@ fun AudioTtsScreen(
 @Composable
 private fun AudioPackagePanel(
     audio: AudioPackage,
-    playing: Boolean,
+    statusLabel: (AudioSegment) -> String,
     onPreview: (String) -> Unit,
-    onStop: () -> Unit
+    onRegenerate: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Audio package", style = MaterialTheme.typography.titleLarge)
-        Text("Provider: ${audio.provider} · Voice: ${audio.voice.voiceId}")
-        Text("Language: ${audio.language}")
-        Text("Validation: ${audio.validation.status.name}")
+        Text("Mode: ${audio.voice.voiceMode.name.replace('_', ' ')}")
         Text("Total duration: ${audio.totalDurationMs}ms")
+        if (audio.targetDurationMs > 0) {
+            Text("Target: ${audio.targetDurationMs}ms · Actual: ${audio.actualNarrationDurationMs}ms · Δ ${audio.durationDeltaMs}ms")
+        }
+        Text("Status: ${audio.status}")
+        Text("Clips: ${audio.segments.size} (${audio.playableSegments.size} ready)")
         Text(
-            "Format: ${audio.metadata.format.format} ${audio.metadata.format.sampleRateHz}Hz " +
-                "${audio.metadata.format.channels}ch ${audio.metadata.format.encoding}"
+            "Format: ${audio.metadata.format.format} ${audio.metadata.format.sampleRateHz}Hz",
+            style = MaterialTheme.typography.bodySmall
         )
-        if (audio.metadata.timingDriftWarnings.isNotEmpty()) {
-            Text(
-                "Timing notes: ${audio.metadata.timingDriftWarnings.size} drift warning(s)",
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-        if (playing) {
-            TextButton(onClick = onStop) { Text("Stop preview") }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
+
+        Text("Scene audio list", style = MaterialTheme.typography.titleMedium)
         audio.segments.sortedBy { it.order }.forEach { seg ->
-            HorizontalDivider()
-            Text(
-                "Segment ${seg.order + 1} · scene ${seg.sceneId} · ${seg.durationMs}ms",
-                style = MaterialTheme.typography.titleMedium
+            SegmentRow(
+                segment = seg,
+                status = statusLabel(seg),
+                onPreview = { onPreview(seg.relativeAudioPath) },
+                onRegenerate = { onRegenerate(seg.segmentId) }
             )
-            Text(seg.sourceText, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                "Timeline ${seg.startMs}–${seg.endMs} · ${seg.provider}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-            )
-            TextButton(onClick = { onPreview(seg.relativeAudioPath) }) {
-                Text("Play segment")
-            }
         }
-        Text(
-            "Continue to Video Engine is reserved for M4 — not started automatically.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
+    }
+}
+
+@Composable
+private fun SegmentRow(
+    segment: AudioSegment,
+    status: String,
+    onPreview: () -> Unit,
+    onRegenerate: () -> Unit
+) {
+    HorizontalDivider()
+    val title = segment.title.ifBlank { "Scene ${segment.order + 1}" }
+    Text("$title · ${segment.role.name}", style = MaterialTheme.typography.titleMedium)
+    Text(segment.sourceText, style = MaterialTheme.typography.bodyMedium)
+    Text(
+        "Voice: ${segment.voiceId} (${segment.voiceMode.name}) · ${segment.durationMs}ms · $status",
+        style = MaterialTheme.typography.bodySmall,
+        color = when (segment.status) {
+            AudioSegmentStatus.STALE -> MaterialTheme.colorScheme.error
+            AudioSegmentStatus.FAILED -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        }
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(onClick = onPreview) { Text("Play") }
+        TextButton(onClick = onRegenerate) { Text("Regenerate") }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProviderDropdown(
-    providers: List<Pair<String, String>>,
-    selected: String,
-    onSelected: (String) -> Unit
-) {
+private fun LanguageDropdown(selected: String, onSelected: (String) -> Unit) {
+    val options = listOf("en" to "English", "hi" to "Hindi", "bn" to "Bengali")
     var expanded by remember { mutableStateOf(false) }
-    val label = providers.find { it.first == selected }?.second ?: selected
+    val label = options.find { it.first == selected }?.second ?: selected
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = label,
             onValueChange = {},
             readOnly = true,
-            label = { Text("TTS provider") },
+            label = { Text("Language") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            providers.forEach { (id, name) ->
+            options.forEach { (code, name) ->
                 DropdownMenuItem(
                     text = { Text(name) },
                     onClick = {
-                        onSelected(id)
+                        onSelected(code)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VoiceDropdown(
+    voices: List<com.avsp.pro.audio.contract.LocalVoiceInfo>,
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = voices.find { it.voiceId == selected }?.displayName ?: selected
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = label,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Available voice") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            voices.forEach { voice ->
+                DropdownMenuItem(
+                    text = {
+                        val suffix = buildString {
+                            voice.gender?.let { append(" · $it") }
+                            if (voice.requiresDownload) append(" · download required")
+                            if (!voice.installed) append(" · unavailable")
+                        }
+                        Text("${voice.displayName} (${voice.languageTag})$suffix")
+                    },
+                    onClick = {
+                        onSelected(voice.voiceId)
                         expanded = false
                     }
                 )

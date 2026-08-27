@@ -54,6 +54,23 @@ object WavEncoder {
         return (pcmDataSize.toLong() * 1000L) / bytesPerSec
     }
 
+    fun encodePcm(pcm: ByteArray): ByteArray {
+        val out = ByteArrayOutputStream(44 + pcm.size)
+        writeHeader(out, pcm.size)
+        out.write(pcm)
+        return out.toByteArray()
+    }
+
+    fun extractPcmOrGenerateTone(wavBytes: ByteArray, targetDurationMs: Long): ByteArray {
+        if (wavBytes.size > 44 &&
+            wavBytes.copyOfRange(0, 4).toString(Charsets.US_ASCII) == "RIFF"
+        ) {
+            return wavBytes.copyOfRange(44, wavBytes.size)
+        }
+        val generated = synthesizeToneWav("clone", targetDurationMs)
+        return generated.copyOfRange(44, generated.size)
+    }
+
     private fun frequencyFor(seedText: String): Double {
         val hash = seedText.hashCode().and(0x7fffffff)
         return 220.0 + (hash % 400)

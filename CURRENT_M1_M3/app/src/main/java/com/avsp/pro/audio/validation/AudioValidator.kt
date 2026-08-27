@@ -56,10 +56,10 @@ object AudioValidator {
             if (seg.status == AudioSegmentStatus.FAILED) {
                 errors += "segment ${seg.segmentId} failed: ${seg.errorCode}"
             }
-            if (seg.relativeAudioPath.isBlank() && seg.status == AudioSegmentStatus.GENERATED) {
+            if (seg.relativeAudioPath.isBlank() && seg.status == AudioSegmentStatus.READY) {
                 errors += "segment ${seg.segmentId} missing audio path"
             }
-            if (seg.durationMs <= 0L && seg.status == AudioSegmentStatus.GENERATED) {
+            if (seg.durationMs <= 0L && seg.status == AudioSegmentStatus.READY) {
                 errors += "segment ${seg.segmentId} invalid duration"
             }
             if (seg.startMs != cursor) {
