@@ -55,6 +55,6 @@ object AudioToVideoContract {
         endMs = endMs,
         durationMs = durationMs,
         language = language,
-        voiceId = voiceId
+        voiceId = this.voiceId.ifBlank { voiceId }
     )
 }

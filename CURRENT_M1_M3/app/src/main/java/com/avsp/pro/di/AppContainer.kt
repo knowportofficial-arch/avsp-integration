@@ -21,6 +21,8 @@ import com.avsp.pro.script.repository.ScriptRepositoryImpl
 import com.avsp.pro.audio.engine.DefaultTtsEngineRegistry
 import com.avsp.pro.audio.repository.AudioRepository
 import com.avsp.pro.audio.repository.AudioRepositoryImpl
+import com.avsp.pro.audio.voice.LocalVoiceCatalog
+import com.avsp.pro.audio.voice.VoiceCloneProfileStore
 import com.avsp.pro.storage.AvspStorage
 import com.avsp.pro.storage.FileAvspStorage
 
@@ -61,12 +63,21 @@ class AppContainer(context: Context) {
         logger = logger
     )
 
-    private val ttsEngineRegistry = DefaultTtsEngineRegistry(appContext, secureConfigStore)
+    private val ttsEngineRegistry = DefaultTtsEngineRegistry(
+        appContext,
+        secureConfigStore,
+        storage,
+        VoiceCloneProfileStore(storage)
+    )
+    private val voiceCatalog = LocalVoiceCatalog(appContext)
+    private val voiceCloneProfileStore = VoiceCloneProfileStore(storage)
 
     val audioRepository: AudioRepository = AudioRepositoryImpl(
         storage = storage,
         scriptRepository = scriptRepository,
         ttsRegistry = ttsEngineRegistry,
+        voiceCatalog = voiceCatalog,
+        voiceCloneProfileStore = voiceCloneProfileStore,
         logger = logger
     )
 }
