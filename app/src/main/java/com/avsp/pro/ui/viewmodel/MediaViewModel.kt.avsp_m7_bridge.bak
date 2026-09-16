@@ -1,0 +1,52 @@
+package com.avsp.pro.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.avsp.pro.core.contracts.MediaAsset
+import com.avsp.pro.core.contracts.Project
+import com.avsp.pro.core.error.AvspException
+import com.avsp.pro.core.ui.UiState
+import com.avsp.pro.logs.AvspLogger
+import com.avsp.pro.media.BundledMediaSeeder
+import com.avsp.pro.repository.ProjectRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class MediaInventory(
+    val projects: List<Project>,
+    val assetsByProject: Map<String, List<MediaAsset>>
+)
+
+class MediaViewModel(
+    private val projectRepository: ProjectRepository,
+    private val logger: AvspLogger,
+    private val bundledMediaSeeder: BundledMediaSeeder
+) : ViewModel() {
+
+    private val _state = MutableStateFlow<UiState<MediaInventory>>(UiState.Idle)
+    val state: StateFlow<UiState<MediaInventory>> = _state.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.value = UiState.Loading
+            try {
+                val projects = projectRepository.listProjects()
+                val map = projects.associate { project ->
+                    bundledMediaSeeder.ensureForProject(project.projectId)
+                    project.projectId to projectRepository.listMediaAssets(project.projectId)
+                }
+                _state.value = UiState.Success(MediaInventory(projects, map))
+            } catch (e: Exception) {
+                val msg = (e as? AvspException)?.errorInfo?.message ?: e.message ?: "Failed to load media"
+                logger.error("M1", "Media load failed", details = msg)
+                _state.value = UiState.Error(msg)
+            }
+        }
+    }
+}

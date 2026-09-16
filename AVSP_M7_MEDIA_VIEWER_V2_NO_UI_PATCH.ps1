@@ -1,0 +1,271 @@
+$ErrorActionPreference = "Stop"
+
+$root = (Get-Location).Path
+$gradle = Join-Path $root "app\build.gradle.kts"
+$screen = Get-ChildItem (Join-Path $root "app\src\main\java") -Recurse -Filter "MediaScreen.kt" | Select-Object -First 1
+
+if (-not (Test-Path $gradle)) { throw "app\build.gradle.kts not found. Run this script from avsp_android_master." }
+if (-not $screen) { throw "MediaScreen.kt not found." }
+
+# Backup once before changing anything.
+$backupGradle = "$gradle.avsp_m7_viewer_v2.bak"
+$backupScreen = "$($screen.FullName).avsp_m7_viewer_v2.bak"
+if (-not (Test-Path $backupGradle)) { Copy-Item $gradle $backupGradle }
+if (-not (Test-Path $backupScreen)) { Copy-Item $screen.FullName $backupScreen }
+
+# Remove only media3-ui. media3-exoplayer remains the playback engine.
+$g = Get-Content $gradle -Raw
+$g = $g -replace '(?m)^\s*implementation\("androidx\.media3:media3-ui:1\.9\.3"\)\r?\n', ''
+Set-Content -Path $gradle -Value $g -Encoding UTF8
+
+# M7 Media Library screen with direct Media3 ExoPlayer + SurfaceView.
+$source = @'
+package com.avsp.pro.ui.screens.media
+
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.view.SurfaceView
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import com.avsp.pro.core.media.MediaAsset
+import com.avsp.pro.core.ui.UiState
+import com.avsp.pro.ui.components.EmptyState
+import com.avsp.pro.ui.components.ErrorState
+import com.avsp.pro.ui.components.LoadingState
+import com.avsp.pro.ui.viewmodel.MediaViewModel
+
+@Composable
+fun MediaScreen(viewModel: MediaViewModel) {
+    val state by viewModel.state.collectAsState()
+    var selectedAsset by remember { mutableStateOf<MediaAsset?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Text("Media / Assets", style = MaterialTheme.typography.headlineLarge)
+            Text(
+                "Project media and bundled M4 QA source clips appear here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+            )
+            when (val s = state) {
+                is UiState.Idle, is UiState.Loading -> LoadingState("Loading media inventory…")
+                is UiState.Error -> ErrorState(s.message, onRetry = viewModel::refresh)
+                is UiState.Success -> {
+                    val totalAssets = s.data.assetsByProject.values.sumOf { it.size }
+                    if (s.data.projects.isEmpty()) {
+                        EmptyState(
+                            title = "No projects",
+                            message = "Create a project first. Media folders are created per project.",
+                            actionLabel = "Refresh",
+                            onAction = viewModel::refresh
+                        )
+                    } else if (totalAssets == 0) {
+                        EmptyState(
+                            title = "No assets yet",
+                            message = "Bundled M4 QA clips are imported automatically for render testing.",
+                            actionLabel = "Refresh",
+                            onAction = viewModel::refresh
+                        )
+                    } else {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(s.data.projects, key = { it.projectId }) { project ->
+                                val assets = s.data.assetsByProject[project.projectId].orEmpty()
+                                Column {
+                                    Text(project.name, style = MaterialTheme.typography.titleLarge)
+                                    if (assets.isEmpty()) {
+                                        Text("No assets", style = MaterialTheme.typography.bodyMedium)
+                                    } else {
+                                        assets.forEach { asset ->
+                                            MediaAssetRow(
+                                                asset = asset,
+                                                onClick = { selectedAsset = asset }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = viewModel::refresh) { Text("Refresh") }
+                }
+            }
+        }
+
+        selectedAsset?.let { asset ->
+            MediaViewerOverlay(
+                asset = asset,
+                onClose = { selectedAsset = null }
+            )
+        }
+    }
+}
+
+@Composable
+private fun MediaAssetRow(
+    asset: MediaAsset,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp)
+    ) {
+        Text(
+            asset.fileName,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            "${asset.mimeType} · ${asset.relativePath}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+        )
+    }
+}
+
+@Composable
+private fun MediaViewerOverlay(
+    asset: MediaAsset,
+    onClose: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.96f))
+    ) {
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close viewer"
+            )
+        }
+
+        if (asset.mimeType.startsWith("image/")) {
+            PhotoPreview(asset = asset)
+        } else if (asset.mimeType.startsWith("video/")) {
+            VideoPreview(asset = asset)
+        } else {
+            Text(
+                "Preview not supported for ${asset.mimeType}",
+                modifier = Modifier.align(Alignment.Center),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoPreview(asset: MediaAsset) {
+    val context = LocalContext.current
+    var bitmap by remember(asset.assetId, asset.relativePath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+    LaunchedEffect(asset.assetId, asset.relativePath) {
+        bitmap = runCatching {
+            val uri = Uri.parse(asset.relativePath)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input)
+            }
+        }.getOrNull()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val image = bitmap
+        if (image != null) {
+            Image(
+                bitmap = image.asImageBitmap(),
+                contentDescription = asset.fileName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            CircularProgressIndicator(modifier = Modifier.size(48.dp))
+        }
+    }
+}
+
+@Composable
+private fun VideoPreview(asset: MediaAsset) {
+    val context = LocalContext.current
+    val player = remember(asset.assetId, asset.relativePath) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(Uri.parse(asset.relativePath)))
+            prepare()
+            playWhenReady = false
+        }
+    }
+
+    DisposableEffect(player) {
+        onDispose {
+            player.release()
+        }
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            SurfaceView(ctx)
+        },
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        update = { surfaceView ->
+            player.setVideoSurfaceView(surfaceView)
+        }
+    )
+
+    LaunchedEffect(player) {
+        player.playWhenReady = false
+        player.repeatMode = Player.REPEAT_MODE_OFF
+    }
+}
+'@
+
+Set-Content -Path $screen.FullName -Value $source -Encoding UTF8
+
+Write-Host ""
+Write-Host "AVSP M7 MEDIA VIEWER V2 PATCH APPLIED"
+Write-Host "Modified: app/build.gradle.kts, $($screen.FullName)"
+Write-Host "Removed: androidx.media3:media3-ui:1.9.3"
+Write-Host "Kept: androidx.media3:media3-exoplayer:1.9.3"
+Write-Host "Backups: $backupGradle ; $backupScreen"
+Write-Host "Scope: M7 Media Library viewer only; M1-M4 and M6 capture code untouched."

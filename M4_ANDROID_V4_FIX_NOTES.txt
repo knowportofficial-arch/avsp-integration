@@ -1,0 +1,5 @@
+AVSP M4 Android V4
+- Fixed Media3VideoEngine compile errors caused by unsupported Effects API usage.
+- Removed unsupported MediaMetadataRetriever codec constants.
+- Build script remains fail-fast for compilation/test failures.
+- This package is a source fix candidate; Windows build/test must establish PASS.

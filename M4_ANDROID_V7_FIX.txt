@@ -1,0 +1,1 @@
+V7: Fixed M4VideoEngineTest function/property invocation mismatch: handoff() is invoked when constructing VideoRenderPlanFactory input.

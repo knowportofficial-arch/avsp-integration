@@ -1,0 +1,76 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "avsp_m1_v1_placeholder",
+    "entities": [
+      {
+        "tableName": "projects",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`projectId` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `duration` INTEGER, `aspectRatio` TEXT NOT NULL, `language` TEXT NOT NULL, `outputPath` TEXT, `metadataJson` TEXT NOT NULL, PRIMARY KEY(`projectId`))",
+        "fields": [
+          {"fieldPath":"projectId","columnName":"projectId","affinity":"TEXT","notNull":true},
+          {"fieldPath":"name","columnName":"name","affinity":"TEXT","notNull":true},
+          {"fieldPath":"description","columnName":"description","affinity":"TEXT","notNull":true},
+          {"fieldPath":"createdAt","columnName":"createdAt","affinity":"INTEGER","notNull":true},
+          {"fieldPath":"updatedAt","columnName":"updatedAt","affinity":"INTEGER","notNull":true},
+          {"fieldPath":"status","columnName":"status","affinity":"TEXT","notNull":true},
+          {"fieldPath":"duration","columnName":"duration","affinity":"INTEGER","notNull":false},
+          {"fieldPath":"aspectRatio","columnName":"aspectRatio","affinity":"TEXT","notNull":true},
+          {"fieldPath":"language","columnName":"language","affinity":"TEXT","notNull":true},
+          {"fieldPath":"outputPath","columnName":"outputPath","affinity":"TEXT","notNull":false},
+          {"fieldPath":"metadataJson","columnName":"metadataJson","affinity":"TEXT","notNull":true}
+        ],
+        "primaryKey":{"auto":false,"columnNames":["projectId"]},
+        "indices":[],
+        "foreignKeys":[]
+      },
+      {
+        "tableName":"module_status",
+        "createSql":"CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`moduleId` TEXT NOT NULL, `displayName` TEXT NOT NULL, `version` TEXT NOT NULL, `status` TEXT NOT NULL, `lastUpdated` INTEGER NOT NULL, `error` TEXT, PRIMARY KEY(`moduleId`))",
+        "fields":[
+          {"fieldPath":"moduleId","columnName":"moduleId","affinity":"TEXT","notNull":true},
+          {"fieldPath":"displayName","columnName":"displayName","affinity":"TEXT","notNull":true},
+          {"fieldPath":"version","columnName":"version","affinity":"TEXT","notNull":true},
+          {"fieldPath":"status","columnName":"status","affinity":"TEXT","notNull":true},
+          {"fieldPath":"lastUpdated","columnName":"lastUpdated","affinity":"INTEGER","notNull":true},
+          {"fieldPath":"error","columnName":"error","affinity":"TEXT","notNull":false}
+        ],
+        "primaryKey":{"auto":false,"columnNames":["moduleId"]},
+        "indices":[],
+        "foreignKeys":[]
+      },
+      {
+        "tableName":"settings",
+        "createSql":"CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))",
+        "fields":[
+          {"fieldPath":"key","columnName":"key","affinity":"TEXT","notNull":true},
+          {"fieldPath":"value","columnName":"value","affinity":"TEXT","notNull":true}
+        ],
+        "primaryKey":{"auto":false,"columnNames":["key"]},
+        "indices":[],
+        "foreignKeys":[]
+      },
+      {
+        "tableName":"logs",
+        "createSql":"CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `level` TEXT NOT NULL, `module` TEXT NOT NULL, `message` TEXT NOT NULL, `details` TEXT, `projectId` TEXT)",
+        "fields":[
+          {"fieldPath":"id","columnName":"id","affinity":"INTEGER","notNull":true},
+          {"fieldPath":"timestamp","columnName":"timestamp","affinity":"INTEGER","notNull":true},
+          {"fieldPath":"level","columnName":"level","affinity":"TEXT","notNull":true},
+          {"fieldPath":"module","columnName":"module","affinity":"TEXT","notNull":true},
+          {"fieldPath":"message","columnName":"message","affinity":"TEXT","notNull":true},
+          {"fieldPath":"details","columnName":"details","affinity":"TEXT","notNull":false},
+          {"fieldPath":"projectId","columnName":"projectId","affinity":"TEXT","notNull":false}
+        ],
+        "primaryKey":{"auto":true,"columnNames":["id"]},
+        "indices":[],
+        "foreignKeys":[]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'avsp_m1_v1_placeholder')"
+    ]
+  }
+}
